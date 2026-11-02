@@ -1,6 +1,6 @@
 {
   "VNO_TRN": {
-    "lastChecked": "2026-11-02T09:51:41Z",
+    "lastChecked": "2026-11-02T10:08:07Z",
     "fare": {
       "price": 125.99,
       "currency": "EUR",
@@ -15,7 +15,7 @@
     "signature": "VNO-TRN-2026-12-26-None-None"
   },
   "TRN_BRI": {
-    "lastChecked": "2026-11-02T09:51:41Z",
+    "lastChecked": "2026-11-02T10:08:07Z",
     "fare": {
       "price": 94.0,
       "currency": "EUR",
@@ -30,7 +30,7 @@
     "signature": "TRN-BRI-2026-12-26-10:00-13:00"
   },
   "TRN_BRI_EVE": {
-    "lastChecked": "2026-11-02T09:51:41Z",
+    "lastChecked": "2026-11-02T10:08:07Z",
     "fare": {
       "price": 81.99,
       "currency": "EUR",
@@ -45,7 +45,7 @@
     "signature": "TRN-BRI-2026-12-26-17:00-None"
   },
   "BRI_VIE": {
-    "lastChecked": "2026-11-02T09:51:41Z",
+    "lastChecked": "2026-11-02T10:08:07Z",
     "fare": {
       "price": 88.99,
       "currency": "EUR",
@@ -60,7 +60,7 @@
     "signature": "BRI-VIE-2027-01-03-None-10:30"
   },
   "VIE_VNO": {
-    "lastChecked": "2026-11-02T09:51:41Z",
+    "lastChecked": "2026-11-02T10:08:07Z",
     "fare": {
       "price": 100.99,
       "currency": "EUR",
@@ -75,7 +75,7 @@
     "signature": "VIE-VNO-2027-01-03-11:30-None"
   },
   "BRI_BGY": {
-    "lastChecked": "2026-11-02T09:51:41Z",
+    "lastChecked": "2026-11-02T10:08:07Z",
     "fare": {
       "price": 83.86,
       "currency": "EUR",
@@ -90,7 +90,7 @@
     "signature": "BRI-BGY-2027-01-02-17:00-None"
   },
   "BGY_VNO": {
-    "lastChecked": "2026-11-02T09:51:41Z",
+    "lastChecked": "2026-11-02T10:08:07Z",
     "fare": {
       "price": 153.99,
       "currency": "EUR",
@@ -105,7 +105,7 @@
     "signature": "BGY-VNO-2027-01-03-None-09:00"
   },
   "BRI_VIE_SAT": {
-    "lastChecked": "2026-11-02T09:51:41Z",
+    "lastChecked": "2026-11-02T10:08:07Z",
     "fare": {
       "price": 137.99,
       "currency": "EUR",
@@ -120,7 +120,7 @@
     "signature": "BRI-VIE-2027-01-02-14:00-None"
   },
   "VIE_VNO_OS": {
-    "lastChecked": "2026-11-02T09:51:41Z",
+    "lastChecked": "2026-11-02T10:08:07Z",
     "fare": {
       "price": 103.0,
       "currency": "EUR",
@@ -135,7 +135,7 @@
     "signature": "VIE-VNO-2027-01-03-None-None"
   },
   "VNO_WAW_LO": {
-    "lastChecked": "2026-11-02T09:51:41Z",
+    "lastChecked": "2026-11-02T10:08:07Z",
     "fare": {
       "price": 117.0,
       "currency": "EUR",
@@ -150,7 +150,7 @@
     "signature": "VNO-WAW-2026-12-26-None-None"
   },
   "WAW_BRI_W6": {
-    "lastChecked": "2026-11-02T09:51:41Z",
+    "lastChecked": "2026-11-02T10:08:07Z",
     "fare": {
       "price": 132.0,
       "currency": "EUR",
@@ -165,7 +165,7 @@
     "signature": "WAW-BRI-2026-12-26-None-None"
   },
   "BRI_ROM_TRAIN": {
-    "lastChecked": "2026-11-02T09:51:41Z",
+    "lastChecked": "2026-11-02T10:08:07Z",
     "fare": {
       "price": 45.0,
       "currency": "EUR",
@@ -180,7 +180,7 @@
     "signature": "BRI-ROM-2027-01-03-None-None"
   },
   "CIA_VNO": {
-    "lastChecked": "2026-11-02T09:51:41Z",
+    "lastChecked": "2026-11-02T10:08:07Z",
     "fare": {
       "price": 224.39,
       "currency": "EUR",
@@ -195,7 +195,7 @@
     "signature": "CIA-VNO-2027-01-03-13:00-None"
   },
   "VNO_BRI_LH": {
-    "lastChecked": "2026-11-02T09:51:41Z",
+    "lastChecked": "2026-11-02T10:08:07Z",
     "fare": {
       "price": 449.0,
       "currency": "EUR",

@@ -69,7 +69,7 @@ Vietinis kūrimas: `cd android && ./gradlew assembleDebug` (reikia Android SDK /
 ## ✈️ Dabartinės kainos
 
 <!-- PRICES:START -->
-_Paskutinis patikrinimas: **2026-11-02 11:51** (Vilniaus laiku)_
+_Paskutinis patikrinimas: **2026-11-02 12:08** (Vilniaus laiku)_
 
 ### Maršrutų variantai
 

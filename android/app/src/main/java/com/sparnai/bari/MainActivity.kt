@@ -223,6 +223,7 @@ private fun BariRoot(vm: MainViewModel) {
                     onTripName = vm::setTripName,
                     onReset = vm::resetTrip,
                     onClearHistory = vm::clearHistory,
+                    onRestoreDefaults = vm::restoreMissingDefaults,
                 )
                 else -> TripScreen(
                     state = state,
@@ -231,6 +232,7 @@ private fun BariRoot(vm: MainViewModel) {
                     onPriceScope = vm::setPriceScope,
                     onEditRoute = { editor = EditorRequest.EditRoute(it) },
                     onDeleteRoute = vm::deleteRoute,
+                    onToggleExcluded = vm::toggleRouteExcluded,
                     onShare = { summary ->
                         val text = shareText(summary, state.trip.passengers)
                         val send = Intent(Intent.ACTION_SEND).apply {
@@ -282,7 +284,7 @@ private fun shareText(summary: RouteSummary, passengers: Int): String = buildStr
             .append(Format.dateShort(leg.segment.date)).append(" ")
             .append(leg.segment.origin).append("→").append(leg.segment.dest)
         leg.fare?.flightNumber?.takeIf { it.isNotBlank() }?.let { append(" ").append(it) }
-        if (leg.departure != null) append(" ").append(Format.time(leg.departure)).append("–").append(Format.time(leg.arrival))
+        if (leg.departure != null) append(" ").append(Format.timeRange(leg.departure, leg.arrival))
         append(" – ").append(Format.total(leg.price, passengers)).append('\n')
     }
     summary.route.note?.let { append(it).append('\n') }

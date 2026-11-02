@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Train
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -49,6 +50,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -83,10 +85,14 @@ fun TripScreen(
     onPriceScope: (PriceScope) -> Unit,
     onEditRoute: (RouteOption?) -> Unit,
     onDeleteRoute: (String) -> Unit,
+    onToggleExcluded: (String) -> Unit,
     onShare: (RouteSummary) -> Unit,
 ) {
     val scope = state.settings.priceScope
-    val plan = remember(state.trip, state.records, scope) { RouteMath.plan(state.trip, state.records, scope) }
+    val excluded = state.settings.excludedRoutes
+    val plan = remember(state.trip, state.records, scope, excluded) { RouteMath.plan(state.trip, state.records, scope, excluded) }
+    val bestIds = listOfNotNull(plan.bestOut, plan.bestBack, plan.bestRound).map { it.route.id }.toSet()
+    var confirmDelete by remember { mutableStateOf<RouteOption?>(null) }
     var collapsed by rememberSaveable { mutableStateOf(setOf<String>()) }
     fun LazyListScope.section(key: String, title: String, subtitle: String?, list: List<RouteSummary>) {
         if (list.isEmpty()) return
@@ -100,11 +106,12 @@ fun TripScreen(
             items(list, key = { it.route.id }) { summary ->
                 RouteCard(
                     summary = summary,
-                    rank = list.indexOf(summary),
+                    best = summary.route.id in bestIds,
                     passengers = state.trip.passengers,
                     onOpenSegment = onOpenSegment,
                     onEdit = { onEditRoute(summary.route) },
-                    onDelete = { onDeleteRoute(summary.route.id) },
+                    onDelete = { confirmDelete = summary.route },
+                    onToggleExcluded = { onToggleExcluded(summary.route.id) },
                     onShare = { onShare(summary) },
                 )
             }
@@ -138,6 +145,21 @@ fun TripScreen(
             }
         }
         item(key = "pad") { Spacer(Modifier.height(72.dp)) }
+    }
+
+    confirmDelete?.let { route ->
+        AlertDialog(
+            onDismissRequest = { confirmDelete = null },
+            title = { Text("Pašalinti variantą?") },
+            text = {
+                Text(
+                    "„${route.name}“ bus pašalintas. Jei norite jį tik paslėpti iš palyginimo, rinkitės „Neįtraukti į palyginimą“. " +
+                        "Ištrintus numatytuosius variantus galima grąžinti nustatymuose.",
+                )
+            },
+            confirmButton = { TextButton(onClick = { confirmDelete = null; onDeleteRoute(route.id) }) { Text("Pašalinti") } },
+            dismissButton = { TextButton(onClick = { confirmDelete = null }) { Text("Atšaukti") } },
+        )
     }
 }
 
@@ -277,18 +299,20 @@ private fun HeroLine(arrow: String, what: String, summary: RouteSummary?) {
 @Composable
 private fun RouteCard(
     summary: RouteSummary,
-    rank: Int,
+    best: Boolean,
     passengers: Int,
     onOpenSegment: (String) -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onToggleExcluded: () -> Unit,
     onShare: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val best = rank == 0 && summary.total != null
     var menu by remember { mutableStateOf(false) }
     ElevatedCard(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .alpha(if (summary.excluded) 0.55f else 1f),
         colors = if (best) {
             CardDefaults.elevatedCardColors(containerColor = scheme.secondaryContainer)
         } else {
@@ -308,6 +332,9 @@ private fun RouteCard(
                         Spacer(Modifier.height(6.dp))
                     }
                     Text(summary.route.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    if (summary.excluded) {
+                        Text("Neįtraukta į palyginimą", style = MaterialTheme.typography.labelSmall, color = scheme.onSurfaceVariant)
+                    }
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
@@ -324,6 +351,10 @@ private fun RouteCard(
                     IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, contentDescription = "Daugiau") }
                     DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                         DropdownMenuItem(text = { Text("Dalintis") }, leadingIcon = { Icon(Icons.Filled.Share, null) }, onClick = { menu = false; onShare() })
+                        DropdownMenuItem(
+                            text = { Text(if (summary.excluded) "Įtraukti į palyginimą" else "Neįtraukti į palyginimą") },
+                            onClick = { menu = false; onToggleExcluded() },
+                        )
                         DropdownMenuItem(text = { Text("Redaguoti") }, onClick = { menu = false; onEdit() })
                         DropdownMenuItem(text = { Text("Pašalinti") }, onClick = { menu = false; onDelete() })
                     }
@@ -400,7 +431,7 @@ fun LegRow(leg: Leg, passengers: Int, onClick: () -> Unit) {
                 overflow = TextOverflow.Ellipsis,
             )
             val flight = leg.fare?.flightNumber?.takeIf { it.isNotBlank() }
-            val times = if (leg.departure != null) "${Format.time(leg.departure)}–${Format.time(leg.arrival)}" else null
+            val times = if (leg.departure != null) Format.timeRange(leg.departure, leg.arrival) else null
             val stops = leg.fare?.stops?.takeIf { it > 0 }?.let { "$it persėd." }
             Text(
                 listOfNotNull(Format.dateShort(seg.date), flight, times, stops).joinToString(" · "),

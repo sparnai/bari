@@ -188,6 +188,8 @@ data class AppSettings(
     val minDropEuro: Double = 1.0,
     val notifyOnTarget: Boolean = true,
     val priceScope: PriceScope = PriceScope.FULL,
+    /** Route ids left out of the "cheapest trip" comparison (still listed, greyed out). */
+    val excludedRoutes: List<String> = emptyList(),
 )
 
 @Serializable

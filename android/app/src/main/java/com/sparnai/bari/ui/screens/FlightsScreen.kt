@@ -126,7 +126,7 @@ private fun SegmentCard(segment: Segment, state: AppState, pax: Int, onClick: ()
                 Column(Modifier.weight(1f)) {
                     Text(segment.label, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     val flight = leg.fare?.flightNumber?.takeIf { it.isNotBlank() && it != segment.carrier }
-                    val times = leg.departure?.let { "${Format.time(it)}–${Format.time(leg.arrival)}" }
+                    val times = leg.departure?.let { Format.timeRange(it, leg.arrival) }
                     val stops = leg.fare?.stops?.takeIf { it > 0 }?.let { "$it persėd." }
                     Text(
                         listOfNotNull(Format.dateShort(segment.date), leg.fare?.carrier ?: segment.carrier, flight, times, stops)

@@ -106,6 +106,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** Leave a route out of the cheapest-trip comparison (or bring it back). */
+    fun toggleRouteExcluded(id: String) {
+        val settings = state.value.settings
+        val excluded = if (id in settings.excludedRoutes) settings.excludedRoutes - id else settings.excludedRoutes + id
+        updateSettings(settings.copy(excludedRoutes = excluded))
+    }
+
+    fun restoreMissingDefaults() {
+        viewModelScope.launch {
+            val n = repository.restoreMissingDefaults()
+            _messages.emit(if (n > 0) "Grąžinta variantų: $n" else "Visi numatytieji variantai jau yra")
+            if (n > 0) refresh()
+        }
+    }
+
     fun clearHistory() {
         viewModelScope.launch {
             repository.clearHistory()

@@ -111,7 +111,7 @@ fun SegmentDetailScreen(
                         )
                     }
                     val flight = leg.fare?.flightNumber?.takeIf { it.isNotBlank() }
-                    val times = leg.departure?.let { "${Format.time(it)} → ${Format.time(leg.arrival)}" }
+                    val times = leg.departure?.let { Format.timeRange(it, leg.arrival) }
                     Text(
                         listOfNotNull(segment.carrier, flight, times).joinToString(" · "),
                         style = MaterialTheme.typography.bodyMedium,

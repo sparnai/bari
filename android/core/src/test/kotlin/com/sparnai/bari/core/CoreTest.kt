@@ -349,6 +349,27 @@ class CoreTest {
     }
 
     @Test
+    fun excludedRoutesLeaveTheComparison() {
+        val trip = TripConfig(
+            segments = listOf(seg("BUS", "BRI", "WAW", "2027-01-03"), seg("VIE", "BRI", "VIE", "2027-01-03")),
+            routes = listOf(
+                RouteOption("waw", "Per Varšuvą", listOf("BUS"), direction = Direction.BACK),
+                RouteOption("vie", "Per Vieną", listOf("VIE"), direction = Direction.BACK),
+            ),
+        )
+        val records = mapOf("BUS" to SegmentRecord(fare = Fare(155.0)), "VIE" to SegmentRecord(fare = Fare(176.0)))
+        assertEquals("waw", RouteMath.plan(trip, records).bestBack!!.route.id)
+        val plan = RouteMath.plan(trip, records, excluded = listOf("waw"))
+        assertEquals("vie", plan.bestBack!!.route.id)
+        assertEquals(listOf("vie", "waw"), plan.back.map { it.route.id }) // excluded goes last, still listed
+        assertTrue(plan.back.last().excluded)
+        assertEquals(
+            "23:05–06:50 (+1 d.)",
+            Format.timeRange(RouteMath.parseLocal("2027-01-03T23:05"), RouteMath.parseLocal("2027-01-04T06:50")),
+        )
+    }
+
+    @Test
     fun stateRoundTrip() {
         val state = AppState(
             trip = TripConfig(segments = listOf(seg("A", "VNO", "TRN"))),

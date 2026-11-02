@@ -81,6 +81,16 @@ object Format {
 
     fun time(dt: LocalDateTime?): String = dt?.let { String.format(lt, "%02d:%02d", it.hour, it.minute) } ?: "--:--"
 
+    /** "23:05–06:50 (+1 d.)" – marks arrivals on a later day. */
+    fun timeRange(departure: LocalDateTime?, arrival: LocalDateTime?): String {
+        val days = if (departure != null && arrival != null) {
+            ChronoUnit.DAYS.between(departure.toLocalDate(), arrival.toLocalDate())
+        } else {
+            0L
+        }
+        return "${time(departure)}–${time(arrival)}" + if (days > 0) " (+$days d.)" else ""
+    }
+
     fun duration(minutes: Long): String {
         val m = abs(minutes)
         val h = m / 60

@@ -115,7 +115,7 @@ class BariRepository(private val context: Context, private val fetcher: PriceFet
             var ok = 0
             var failed = 0
             update { st ->
-                val bestBefore = RouteMath.plan(st.trip, st.records, st.settings.priceScope).bestTotal
+                val bestBefore = RouteMath.plan(st.trip, st.records, st.settings.priceScope, st.settings.excludedRoutes).bestTotal
                 val records = st.records.toMutableMap()
                 for ((segment, result) in results) {
                     // The segment may have been edited or removed while we were waiting for the network.
@@ -140,7 +140,7 @@ class BariRepository(private val context: Context, private val fetcher: PriceFet
                         }
                     }
                 }
-                val bestAfter = RouteMath.plan(st.trip, records, st.settings.priceScope).bestTotal
+                val bestAfter = RouteMath.plan(st.trip, records, st.settings.priceScope, st.settings.excludedRoutes).bestTotal
                 if (alerts.isNotEmpty() && bestAfter != null) {
                     val suffix = if (bestBefore != null && bestAfter < bestBefore) " (${Format.delta(bestAfter - bestBefore)})" else ""
                     val who = if (st.trip.passengers > 1) " (${Format.passengers(st.trip.passengers)})" else ""
@@ -232,6 +232,21 @@ class BariRepository(private val context: Context, private val fetcher: PriceFet
     suspend fun resetTrip() {
         val fresh = defaultTrip()
         update { st -> AppState(trip = fresh, settings = st.settings, bundledTrip = fresh) }
+    }
+
+    /** Puts back default segments and routes the user deleted; keeps everything else. Returns how many routes came back. */
+    suspend fun restoreMissingDefaults(): Int {
+        val bundled = defaultTrip()
+        var restored = 0
+        update { st ->
+            val segIds = st.trip.segments.map { it.id }.toSet()
+            val routeIds = st.trip.routes.map { it.id }.toSet()
+            val segments = st.trip.segments + bundled.segments.filter { it.id !in segIds }
+            val newRoutes = bundled.routes.filter { it.id !in routeIds }
+            restored = newRoutes.size
+            st.copy(trip = st.trip.copy(segments = segments, routes = st.trip.routes + newRoutes))
+        }
+        return restored
     }
 
     suspend fun clearHistory() {

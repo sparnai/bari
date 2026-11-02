@@ -47,6 +47,8 @@ data class RouteSummary(
     val previousTotal: Double?,
     val missing: List<String>,
     val scope: PriceScope = PriceScope.FULL,
+    /** Left out of the cheapest-trip comparison by the user. */
+    val excluded: Boolean = false,
 ) {
     val worstLayover: LayoverLevel?
         get() = layovers.filterNotNull().map { it.level }.maxByOrNull { severity(it) }
@@ -195,14 +197,18 @@ object RouteMath {
         trip: TripConfig,
         records: Map<String, SegmentRecord>,
         scope: PriceScope = PriceScope.FULL,
+        excluded: Collection<String> = emptyList(),
     ): TripPlan {
+        val skip = excluded.toSet()
         val all = summarizeAll(trip, records, scope)
+            .map { if (it.route.id in skip) it.copy(excluded = true) else it }
+            .sortedWith(compareBy<RouteSummary> { it.excluded }.thenBy { it.total == null }.thenBy { it.total ?: 0.0 })
         val out = all.filter { it.route.direction == Direction.OUT }
         val back = all.filter { it.route.direction == Direction.BACK }
         val round = all.filter { it.route.direction == Direction.ROUND }
-        val bestOut = out.firstOrNull { it.total != null }
-        val bestBack = back.firstOrNull { it.total != null }
-        val bestRound = round.firstOrNull { it.total != null }
+        val bestOut = out.firstOrNull { it.total != null && !it.excluded }
+        val bestBack = back.firstOrNull { it.total != null && !it.excluded }
+        val bestRound = round.firstOrNull { it.total != null && !it.excluded }
         val combo = if (bestOut?.total != null && bestBack?.total != null) round2(bestOut.total + bestBack.total) else null
         val comboPrev = if (bestOut?.previousTotal != null && bestBack?.previousTotal != null) {
             round2(bestOut.previousTotal + bestBack.previousTotal)

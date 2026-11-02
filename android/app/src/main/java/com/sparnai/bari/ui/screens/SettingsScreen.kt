@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.AlertDialog
@@ -54,6 +55,7 @@ fun SettingsScreen(
     onTripName: (String) -> Unit,
     onReset: () -> Unit,
     onClearHistory: () -> Unit,
+    onRestoreDefaults: () -> Unit,
 ) {
     val settings = state.settings
     val uri = LocalUriHandler.current
@@ -140,6 +142,12 @@ fun SettingsScreen(
                     supportingContent = { Text("Grąžina visus numatytuosius Bario maršrutus") },
                     leadingContent = { Icon(Icons.Filled.RestartAlt, contentDescription = null) },
                     modifier = Modifier.clickable { confirm = "reset" },
+                )
+                ListItem(
+                    headlineContent = { Text("Grąžinti ištrintus variantus") },
+                    supportingContent = { Text("Grąžina netyčia pašalintus numatytuosius maršrutus, jūsų pakeitimų neliečia") },
+                    leadingContent = { Icon(Icons.Filled.Restore, contentDescription = null) },
+                    modifier = Modifier.clickable { onRestoreDefaults() },
                 )
                 ListItem(
                     headlineContent = { Text("Išvalyti kainų istoriją") },

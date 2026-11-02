@@ -32,7 +32,8 @@ Programėlė atskirai reitinguoja **nuvykimo** ir **grįžimo** variantus, o vir
 
 **Nuvykimas (gruodžio 26 d.)**
 - Iš Kauno per Bergamą – FlixBus Vilnius → Kaunas, Ryanair KUN → BGY → BRI
-- Per Turiną – ryto persėdimas arba diena Turine (Ryanair)
+- Per Turiną – ryto persėdimas arba vakarinis skrydis (abu be nakvynės, Ryanair)
+- Per Budapeštą – LOT + Ryanair
 - Į Romą + traukinys (Trenitalia) arba + autobusas (FlixBus) į Barį
 - Per Varšuvą – LOT + Wizz Air / Ryanair
 - Autobusu į Varšuvą (FlixBus) + skrydis į Barį
@@ -44,6 +45,7 @@ Programėlė atskirai reitinguoja **nuvykimo** ir **grįžimo** variantus, o vir
 - Traukiniu arba autobusu į Romą + Ryanair iš Čiampino
 - Per Varšuvą
 - Skrydis į Varšuvą + naktinis autobusas namo (FlixBus)
+- Per Budapeštą – Ryanair + Wizz Air
 - Vienu bilietu (Google Flights)
 
 Variantus galima keisti programėlėje (skiltys „Transportas“ ir „Kelionė“) arba faile
@@ -59,6 +61,15 @@ variantų reitingas. Nakvynė ir bagažas neįskaičiuojami nė viename režime.
 
 Eilutėje **„Įtraukti: Autobusai / Traukiniai“** galima išjungti autobusus ar traukinius: tada variantai, kuriuose jie yra,
 neįtraukiami į palyginimą ir pigiausios kelionės skaičiavimą, o jų kainos netikrinamos ir apie jas nepranešama.
+
+## Prioritetas, grafikas ir prognozė
+
+- **Prioritetas: Pigiausias / Greičiausias** – variantai rikiuojami pagal kainą arba pagal visos kelionės trukmę
+  (nuo pirmo išvykimo iki paskutinio atvykimo, įvertinus laiko juostas).
+- **Geriausios kelionės kainos grafikas** – kaip keitėsi pigiausios (ar greičiausios) visos kelionės kaina; kiekviena
+  maršruto kortelė turi ir savo mažą grafiką.
+- **Kada pirkti?** – prognozė pagal bendrus aviabilietų kainų dėsningumus (šventinis laikotarpis, kiek liko iki išvykimo)
+  ir jūsų kainų istorijos tendenciją, bei patarimai, kada bilietai pigiausi. Tai rekomendacija, ne garantija.
 
 ## Pranešimai
 

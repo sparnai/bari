@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.sparnai.bari.core.TransportMode
+import com.sparnai.bari.core.TripHistory
 import com.sparnai.bari.core.TripPlan
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -56,6 +57,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -70,12 +72,18 @@ import com.sparnai.bari.core.Direction
 import com.sparnai.bari.core.Format
 import com.sparnai.bari.core.Leg
 import com.sparnai.bari.core.RouteMath
+import com.sparnai.bari.core.PriceAdvice
+import com.sparnai.bari.core.PricePoint
+import com.sparnai.bari.core.Priority
 import com.sparnai.bari.core.PriceScope
 import com.sparnai.bari.core.RouteOption
 import com.sparnai.bari.core.RouteSummary
 import com.sparnai.bari.ui.components.LayoverPill
+import com.sparnai.bari.ui.components.PriceChart
 import com.sparnai.bari.ui.components.Pill
 import com.sparnai.bari.ui.components.TrendPill
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.sparnai.bari.ui.theme.LocalPriceColors
 
 @Composable
@@ -88,14 +96,27 @@ fun TripScreen(
     onDeleteRoute: (String) -> Unit,
     onToggleExcluded: (String) -> Unit,
     onModeIncluded: (TransportMode, Boolean) -> Unit,
+    onPriority: (Priority) -> Unit,
     onShare: (RouteSummary) -> Unit,
 ) {
     val scope = state.settings.priceScope
     val excluded = state.settings.excludedRoutes
     val allowed = state.settings.allowedModes
-    val plan = remember(state.trip, state.records, scope, excluded, allowed) {
-        RouteMath.plan(state.trip, state.records, scope, excluded, allowed)
+    val priority = state.settings.priority
+    val plan = remember(state.trip, state.records, scope, excluded, allowed, priority) {
+        RouteMath.plan(state.trip, state.records, scope, excluded, allowed, priority)
     }
+    // Price history of the best trip and of each journey, rebuilt off the main thread.
+    val charts by produceState(TripCharts(), state.trip, state.records, state.settings) {
+        value = withContext(Dispatchers.Default) {
+            TripCharts(
+                best = TripHistory.bestTotal(state.trip, state.records, state.settings),
+                routes = state.trip.routes.associate { it.id to TripHistory.route(it, state.trip, state.records, scope) },
+            )
+        }
+    }
+    val departure = state.trip.segments.mapNotNull { RouteMath.parseDate(it.date) }.minOrNull()
+    val advice = remember(charts.best, departure) { departure?.let { PriceAdvice.forecast(it, charts.best) } }
     val bestIds = listOfNotNull(plan.bestOut, plan.bestBack, plan.bestRound).map { it.route.id }.toSet()
     var confirmDelete by remember { mutableStateOf<RouteOption?>(null) }
     var collapsed by rememberSaveable { mutableStateOf(setOf<String>()) }
@@ -117,6 +138,8 @@ fun TripScreen(
                     onEdit = { onEditRoute(summary.route) },
                     onDelete = { confirmDelete = summary.route },
                     onToggleExcluded = { onToggleExcluded(summary.route.id) },
+                    history = charts.routes[summary.route.id].orEmpty(),
+                    priority = priority,
                     onShare = { onShare(summary) },
                 )
             }
@@ -130,6 +153,9 @@ fun TripScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item(key = "hero") { TripHero(state, plan, onPassengers) }
+        item(key = "chart") { TripChartCard(charts.best, state.trip.passengers, priority) }
+        advice?.let { a -> item(key = "advice") { BuyAdviceCard(a) } }
+        item(key = "priority") { PriorityToggle(priority, onPriority) }
         item(key = "scope") { ScopeToggle(scope, onPriceScope) }
         item(key = "modes") { ModeToggle(state.settings.includeBuses, state.settings.includeTrains, onModeIncluded) }
         if (state.trip.routes.isEmpty()) {
@@ -218,7 +244,8 @@ private fun TripHero(state: AppState, plan: TripPlan, onPassengers: (Int) -> Uni
                 Text(Format.countdown(start), style = MaterialTheme.typography.labelLarge, color = onHero)
             }
             Spacer(Modifier.height(6.dp))
-            val what = if (state.settings.priceScope == PriceScope.FLIGHTS) "tik skrydžiai" else "pilna kaina"
+            val what = (if (state.settings.priceScope == PriceScope.FLIGHTS) "tik skrydžiai" else "pilna kaina") +
+                if (state.settings.priority == Priority.FASTEST) " · greičiausia" else " · pigiausia"
             Text(
                 "Visa kelionė (nuvykimas + grįžimas), ${Format.passengers(pax)} · $what",
                 style = MaterialTheme.typography.labelMedium,
@@ -261,6 +288,12 @@ private fun TripHero(state: AppState, plan: TripPlan, onPassengers: (Int) -> Uni
         }
     }
 }
+
+/** Price histories shown on the trip screen. */
+data class TripCharts(
+    val best: List<PricePoint> = emptyList(),
+    val routes: Map<String, List<PricePoint>> = emptyMap(),
+)
 
 /** "Paslėpta 3 variantai su autobusais" under a section. */
 private fun LazyListScope.hiddenNote(key: String, hidden: List<RouteSummary>, allowed: Set<TransportMode>) {
@@ -335,7 +368,8 @@ private fun ScopeToggle(scope: PriceScope, onChange: (PriceScope) -> Unit) {
 private fun HeroLine(arrow: String, what: String, summary: RouteSummary?) {
     if (summary == null) return
     Text(
-        "$arrow $what: ${summary.route.name} – ${Format.euro(summary.total)}",
+        "$arrow $what: ${summary.route.name} – ${Format.euro(summary.total)}" +
+            (summary.durationMinutes?.let { " · ${Format.duration(it)}" } ?: ""),
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onPrimary,
         maxLines = 2,
@@ -353,6 +387,8 @@ private fun RouteCard(
     onDelete: () -> Unit,
     onToggleExcluded: () -> Unit,
     onShare: () -> Unit,
+    history: List<PricePoint>,
+    priority: Priority,
 ) {
     val scheme = MaterialTheme.colorScheme
     var menu by remember { mutableStateOf(false) }
@@ -371,8 +407,8 @@ private fun RouteCard(
                 Column(Modifier.weight(1f)) {
                     if (best) {
                         val badge = when (summary.route.direction) {
-                            Direction.OUT -> "Pigiausias nuvykimas"
-                            Direction.BACK -> "Pigiausias grįžimas"
+                            Direction.OUT -> if (priority == Priority.FASTEST) "Greičiausias nuvykimas" else "Pigiausias nuvykimas"
+                            Direction.BACK -> if (priority == Priority.FASTEST) "Greičiausias grįžimas" else "Pigiausias grįžimas"
                             Direction.ROUND -> "Pigiausias bilietas į abi puses"
                         }
                         Pill(badge, scheme.secondary, scheme.onSecondary, Icons.Filled.EmojiEvents)
@@ -381,6 +417,9 @@ private fun RouteCard(
                     Text(summary.route.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     if (summary.excluded) {
                         Text("Neįtraukta į palyginimą", style = MaterialTheme.typography.labelSmall, color = scheme.onSurfaceVariant)
+                    }
+                    summary.durationMinutes?.let {
+                        Text("⏱ Kelionė trunka ${Format.duration(it)}", style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
                     }
                 }
                 Column(horizontalAlignment = Alignment.End) {
@@ -416,6 +455,9 @@ private fun RouteCard(
                     "Neįskaičiuota: ${summary.route.extraCostLabel}"
                 }
                 Text(text, style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
+            }
+            if (history.size >= 2) {
+                PriceChart(history, Modifier.fillMaxWidth().height(40.dp), showDots = false)
             }
             HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.6f))
             summary.legs.forEachIndexed { index, leg ->

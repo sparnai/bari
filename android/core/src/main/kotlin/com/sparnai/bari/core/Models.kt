@@ -180,6 +180,16 @@ enum class PriceScope {
     FLIGHTS,
 }
 
+/** What "best" means when ranking journeys. */
+@Serializable
+enum class Priority {
+    @SerialName("cheapest")
+    CHEAPEST,
+
+    @SerialName("fastest")
+    FASTEST,
+}
+
 @Serializable
 data class AppSettings(
     /** 0 = background checks off. */
@@ -193,6 +203,7 @@ data class AppSettings(
     /** Plan with buses / trains. When off, journeys using them are left out and their prices are not checked. */
     val includeBuses: Boolean = true,
     val includeTrains: Boolean = true,
+    val priority: Priority = Priority.CHEAPEST,
 ) {
     /** Transport modes the trip may use (flights are always allowed). */
     val allowedModes: Set<TransportMode>

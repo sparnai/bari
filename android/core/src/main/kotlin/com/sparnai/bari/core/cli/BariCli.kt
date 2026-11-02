@@ -162,14 +162,11 @@ private suspend fun ryanair(fetcher: PriceFetcher, from: String, to: String, dat
 private suspend fun ryanairDay(fetcher: PriceFetcher, from: String, to: String, date: String) {
     println("== Ryanair $from → $to, $date – visi skrydžiai ==")
     val seen = mutableSetOf<String>()
-    var start = 0
-    while (start < 24) {
+    for (hour in 0 until 24) {
         val seg = Segment(id = "r", label = "r", origin = from, dest = to, date = date,
-            timeFrom = "%02d:00".format(start), timeTo = "23:59")
-        val fare = runCatching { fetcher.ryanair.cheapestFare(seg) }.getOrNull() ?: break
-        val dep = RouteMath.parseLocal(fare.departure) ?: break
+            timeFrom = "%02d:00".format(hour), timeTo = "%02d:59".format(hour))
+        val fare = runCatching { fetcher.ryanair.cheapestFare(seg) }.getOrNull() ?: continue
         if (seen.add(fare.flightNumber + fare.departure)) println("  ${fareText(fare)}")
-        start = dep.hour + 1
     }
     if (seen.isEmpty()) println("  nėra skrydžių")
 }

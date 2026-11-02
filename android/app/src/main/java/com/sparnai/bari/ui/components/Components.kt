@@ -95,7 +95,7 @@ fun LayoverPill(layover: Layover, modifier: Modifier = Modifier) {
         LayoverLevel.TIGHT -> Pill("Trumpas persėdimas $where · $time$change", colors.warnContainer, colors.warn, Icons.Filled.Schedule, modifier)
         LayoverLevel.RISKY -> Pill("Rizikinga: tik $time $where$change", colors.upContainer, colors.up, Icons.Filled.Warning, modifier)
         LayoverLevel.IMPOSSIBLE -> Pill("Nespėsite persėsti ($where)", scheme.errorContainer, scheme.onErrorContainer, Icons.Filled.Error, modifier)
-        LayoverLevel.LONG -> Pill("Ilgas laukimas $where · $time$change", scheme.surfaceContainerHigh, scheme.onSurfaceVariant, Icons.Filled.HourglassBottom, modifier)
+        LayoverLevel.LONG -> Pill("Ilgas laukimas $where · $time (be nakvynės)$change", scheme.surfaceContainerHigh, scheme.onSurfaceVariant, Icons.Filled.HourglassBottom, modifier)
         LayoverLevel.OVERNIGHT -> Pill("Nakvynė $where · $time$change", scheme.tertiaryContainer, scheme.onTertiaryContainer, Icons.Filled.Bedtime, modifier)
         LayoverLevel.STAY -> Pill("Viešnagė: $where · ${layover.minutes / (24 * 60)} d.", scheme.secondaryContainer, scheme.onSecondaryContainer, Icons.Filled.BeachAccess, modifier)
     }

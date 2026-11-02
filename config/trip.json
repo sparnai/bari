@@ -133,6 +133,27 @@
       "timeFrom": "15:00"
     },
     {
+      "id": "VNO_BUD",
+      "label": "Vilnius → Budapeštas",
+      "origin": "VNO",
+      "dest": "BUD",
+      "date": "2026-12-26",
+      "source": "google",
+      "maxStops": 1,
+      "maxHours": 8,
+      "timeTo": "09:00"
+    },
+    {
+      "id": "BUD_BRI",
+      "label": "Budapeštas → Baris",
+      "origin": "BUD",
+      "dest": "BRI",
+      "date": "2026-12-26",
+      "source": "ryanair",
+      "carrier": "Ryanair",
+      "timeFrom": "14:30"
+    },
+    {
       "id": "VNO_BRI_ONE",
       "label": "Vilnius → Baris vienu bilietu",
       "origin": "VNO",
@@ -276,6 +297,26 @@
       "timeFrom": "19:30"
     },
     {
+      "id": "BRI_BUD",
+      "label": "Baris → Budapeštas (rytas)",
+      "origin": "BRI",
+      "dest": "BUD",
+      "date": "2027-01-03",
+      "source": "ryanair",
+      "carrier": "Ryanair",
+      "timeTo": "12:30"
+    },
+    {
+      "id": "BUD_VNO",
+      "label": "Budapeštas → Vilnius",
+      "origin": "BUD",
+      "dest": "VNO",
+      "date": "2027-01-03",
+      "source": "google",
+      "maxStops": 0,
+      "timeFrom": "14:00"
+    },
+    {
       "id": "BRI_VNO_ONE",
       "label": "Baris → Vilnius vienu bilietu",
       "origin": "BRI",
@@ -300,23 +341,23 @@
     },
     {
       "id": "o_trn",
-      "name": "Per Turiną (ryto persėdimas)",
+      "name": "Per Turiną – ryto persėdimas (be nakvynės)",
       "direction": "out",
       "segments": [
         "VNO_TRN",
         "TRN_BRI"
       ],
-      "note": "Greičiausias: Turine persėdimas apie 1 val. 45 min. Ryanair bilietai atskiri – rinkitės rankinį bagažą."
+      "note": "Ryanair 06:55 į Turiną ir 10:20 į Barį: persėdimas ~1 val. 45 min., Baryje 12:00. Bilietai atskiri – rinkitės rankinį bagažą."
     },
     {
       "id": "o_trn_day",
-      "name": "Per Turiną (diena Turine)",
+      "name": "Per Turiną – vakarinis skrydis (be nakvynės)",
       "direction": "out",
       "segments": [
         "VNO_TRN",
         "TRN_BRI_EVE"
       ],
-      "note": "Dieną praleidžiate Turine ir į Barį išskrendate vakare – dažnai pigiau."
+      "note": "Ryanair 06:55 į Turiną, dieną galite praleisti mieste, į Barį 21:40. Nakvoti nereikia – Baryje 23:20."
     },
     {
       "id": "o_rome_train",
@@ -361,6 +402,16 @@
         "WAW_BRI"
       ],
       "note": "FlixBus į Varšuvą, iš autobusų stoties į Šopeno oro uostą ~30–40 min., tada tiesioginis skrydis į Barį."
+    },
+    {
+      "id": "o_bud",
+      "name": "Per Budapeštą",
+      "direction": "out",
+      "segments": [
+        "VNO_BUD",
+        "BUD_BRI"
+      ],
+      "note": "Ryte LOT (per Varšuvą) į Budapeštą, vakare Ryanair į Barį."
     },
     {
       "id": "o_ticket",
@@ -454,6 +505,16 @@
         "WAW_VNO_BUS"
       ],
       "note": "Tiesioginis skrydis į Varšuvą, tada naktinis FlixBus į Vilnių (atvykstama kitą rytą)."
+    },
+    {
+      "id": "b_bud",
+      "name": "Per Budapeštą",
+      "direction": "back",
+      "segments": [
+        "BRI_BUD",
+        "BUD_VNO"
+      ],
+      "note": "Ryanair ryte į Budapeštą, po pietų tiesioginis Wizz Air į Vilnių – namie tą pačią dieną."
     },
     {
       "id": "b_ticket",

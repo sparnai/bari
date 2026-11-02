@@ -396,6 +396,70 @@ class CoreTest {
     }
 
     @Test
+    fun fastestPriorityAndTimeZones() {
+        fun rec(p: Double, dep: String, arr: String) = SegmentRecord(fare = Fare(p, departure = dep, arrival = arr))
+        val trip = TripConfig(
+            segments = listOf(seg("A", "VNO", "TRN"), seg("B", "TRN", "BRI"), seg("C", "VNO", "BRI")),
+            routes = listOf(
+                RouteOption("cheap", "Pigus", listOf("A", "B"), direction = Direction.OUT),
+                RouteOption("fast", "Greitas", listOf("C"), direction = Direction.OUT),
+            ),
+        )
+        val records = mapOf(
+            "A" to rec(100.0, "2026-12-26T06:55", "2026-12-26T08:35"),
+            "B" to rec(80.0, "2026-12-26T21:40", "2026-12-26T23:20"),
+            "C" to rec(300.0, "2026-12-26T16:00", "2026-12-26T18:00"),
+        )
+        val cheapest = RouteMath.plan(trip, records)
+        assertEquals("cheap", cheapest.bestOut!!.route.id)
+        // Vilnius is one hour ahead of Italy: 06:55 VNO → 23:20 BRI is 17 h 25 min, not 16 h 25 min.
+        assertEquals(17 * 60 + 25L, cheapest.bestOut!!.durationMinutes)
+        val fastest = RouteMath.plan(trip, records, priority = Priority.FASTEST)
+        assertEquals("fast", fastest.bestOut!!.route.id)
+        assertEquals(3 * 60L, fastest.bestOut!!.durationMinutes)
+        assertEquals(Priority.FASTEST, fastest.priority)
+    }
+
+    @Test
+    fun tripHistoryIsRebuiltFromSegments() {
+        val trip = TripConfig(
+            segments = listOf(seg("O", "VNO", "BRI"), seg("B", "BRI", "VNO", "2027-01-03")),
+            routes = listOf(
+                RouteOption("o", "Out", listOf("O"), direction = Direction.OUT),
+                RouteOption("b", "Back", listOf("B"), direction = Direction.BACK),
+            ),
+        )
+        val records = mapOf(
+            "O" to SegmentRecord(fare = Fare(90.0), history = listOf(PricePoint(1, 100.0), PricePoint(2, 100.0), PricePoint(3, 90.0))),
+            "B" to SegmentRecord(fare = Fare(60.0), history = listOf(PricePoint(1, 50.0), PricePoint(2, 60.0), PricePoint(3, 60.0))),
+        )
+        val series = TripHistory.bestTotal(trip, records, AppSettings())
+        assertEquals(listOf(150.0, 160.0, 150.0), series.map { it.p })
+        assertEquals(listOf(100.0, 100.0, 90.0), TripHistory.route(trip.routes[0], trip, records, PriceScope.FULL).map { it.p })
+    }
+
+    @Test
+    fun buyAdvice() {
+        val zone = java.time.ZoneId.of("Europe/Vilnius")
+        val now = LocalDate.of(2026, 11, 2).atTime(12, 0).atZone(zone).toInstant().toEpochMilli()
+        val departure = LocalDate.of(2026, 12, 26)
+        assertEquals(LocalDate.of(2026, 11, 27), PriceAdvice.blackFriday(2026))
+        val flat = PriceAdvice.forecast(departure, listOf(PricePoint(now - 1, 600.0)), now)
+        assertEquals(AdviceLevel.GOOD_TIME, flat.level)
+        assertEquals(LocalDate.of(2026, 11, 21), flat.buyBy)
+        assertTrue(flat.headline, flat.headline.contains("lapkričio 21 d."))
+        val day = 86_400_000L
+        val rising = (0..6).map { PricePoint(now - (6 - it) * day, 600.0 + it * 10) }
+        val r = PriceAdvice.forecast(departure, rising, now)
+        assertEquals(AdviceLevel.BUY_NOW, r.level)
+        assertEquals(10.0, r.trendPerDay!!, 0.01)
+        val late = PriceAdvice.forecast(departure, rising, LocalDate.of(2026, 12, 10).atStartOfDay(zone).toInstant().toEpochMilli())
+        assertEquals(AdviceLevel.BUY_NOW, late.level)
+        assertTrue(PriceAdvice.tips.size >= 8)
+        assertEquals("lapkričio 21 d.", Format.dayMonth(LocalDate.of(2026, 11, 21)))
+    }
+
+    @Test
     fun stateRoundTrip() {
         val state = AppState(
             trip = TripConfig(segments = listOf(seg("A", "VNO", "TRN"))),

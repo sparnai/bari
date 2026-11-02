@@ -7,6 +7,7 @@ import com.sparnai.bari.BariApp
 import com.sparnai.bari.core.AppSettings
 import com.sparnai.bari.core.AppState
 import com.sparnai.bari.core.DayFare
+import com.sparnai.bari.core.Priority
 import com.sparnai.bari.core.PriceScope
 import com.sparnai.bari.core.RouteOption
 import com.sparnai.bari.core.Segment
@@ -95,6 +96,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 PriceCheckWorker.schedule(getApplication<Application>(), settings.checkIntervalHours)
             }
         }
+    }
+
+    fun setPriority(priority: Priority) {
+        updateSettings(state.value.settings.copy(priority = priority))
     }
 
     fun setPriceScope(scope: PriceScope) {

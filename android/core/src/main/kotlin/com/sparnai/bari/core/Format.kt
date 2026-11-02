@@ -79,6 +79,9 @@ object Format {
 
     fun weekdayShort(date: LocalDate): String = weekdaysShort[date.dayOfWeek.value - 1]
 
+    /** "lapkričio 21 d." */
+    fun dayMonth(date: LocalDate): String = "${monthsGenitive[date.monthValue - 1]} ${date.dayOfMonth} d."
+
     fun time(dt: LocalDateTime?): String = dt?.let { String.format(lt, "%02d:%02d", it.hour, it.minute) } ?: "--:--"
 
     /** "23:05–06:50 (+1 d.)" – marks arrivals on a later day. */

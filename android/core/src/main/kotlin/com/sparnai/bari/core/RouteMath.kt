@@ -49,6 +49,8 @@ data class RouteSummary(
     val scope: PriceScope = PriceScope.FULL,
     /** Left out of the cheapest-trip comparison by the user. */
     val excluded: Boolean = false,
+    /** Door-to-door time from the first departure to the last arrival (time zones taken into account). */
+    val durationMinutes: Long? = null,
 ) {
     val worstLayover: LayoverLevel?
         get() = layovers.filterNotNull().map { it.level }.maxByOrNull { severity(it) }
@@ -76,6 +78,7 @@ data class TripPlan(
     val roundTripWins: Boolean,
     /** Journeys left out because they use a transport mode that is switched off (buses, trains). */
     val hidden: List<RouteSummary> = emptyList(),
+    val priority: Priority = Priority.CHEAPEST,
 )
 
 object RouteMath {
@@ -182,7 +185,24 @@ object RouteMath {
             previousTotal = previous?.let { round2(it * pax) },
             missing = missing,
             scope = scope,
+            durationMinutes = journeyMinutes(legs),
         )
+    }
+
+    /** Minutes from the first departure to the last arrival, converting local times with the places' time zones. */
+    fun journeyMinutes(legs: List<Leg>): Long? {
+        val first = legs.firstOrNull() ?: return null
+        val last = legs.last()
+        val dep = first.departure ?: return null
+        val arr = last.arrival ?: return null
+        val depZone = Zones.of(first.segment.origin)
+        val arrZone = Zones.of(last.segment.dest)
+        val minutes = if (depZone != null && arrZone != null) {
+            Duration.between(dep.atZone(depZone), arr.atZone(arrZone)).toMinutes()
+        } else {
+            Duration.between(dep, arr).toMinutes()
+        }
+        return minutes.takeIf { it >= 0 }
     }
 
     /** All routes, cheapest first; incomplete routes last. */
@@ -201,13 +221,21 @@ object RouteMath {
         scope: PriceScope = PriceScope.FULL,
         excluded: Collection<String> = emptyList(),
         allowedModes: Set<TransportMode> = TransportMode.entries.toSet(),
+        priority: Priority = Priority.CHEAPEST,
     ): TripPlan {
         val skip = excluded.toSet()
         val (usable, hidden) = summarizeAll(trip, records, scope)
             .partition { summary -> summary.legs.all { it.segment.mode in allowedModes } }
         val all = usable
             .map { if (it.route.id in skip) it.copy(excluded = true) else it }
-            .sortedWith(compareBy<RouteSummary> { it.excluded }.thenBy { it.total == null }.thenBy { it.total ?: 0.0 })
+            .sortedWith(
+                when (priority) {
+                    Priority.CHEAPEST -> compareBy<RouteSummary> { it.excluded }
+                        .thenBy { it.total == null }.thenBy { it.total ?: 0.0 }.thenBy { it.durationMinutes ?: Long.MAX_VALUE }
+                    Priority.FASTEST -> compareBy<RouteSummary> { it.excluded }
+                        .thenBy { it.total == null }.thenBy { it.durationMinutes ?: Long.MAX_VALUE }.thenBy { it.total ?: 0.0 }
+                },
+            )
         val out = all.filter { it.route.direction == Direction.OUT }
         val back = all.filter { it.route.direction == Direction.BACK }
         val round = all.filter { it.route.direction == Direction.ROUND }
@@ -220,7 +248,8 @@ object RouteMath {
         } else {
             null
         }
-        val roundWins = bestRound?.total != null && (combo == null || bestRound.total < combo)
+        val roundWins = bestRound?.total != null &&
+            (combo == null || (priority == Priority.CHEAPEST && bestRound.total < combo))
         return TripPlan(
             outbound = out,
             back = back,
@@ -232,6 +261,7 @@ object RouteMath {
             previousBestTotal = if (roundWins) bestRound?.previousTotal else comboPrev,
             roundTripWins = roundWins,
             hidden = hidden,
+            priority = priority,
         )
     }
 

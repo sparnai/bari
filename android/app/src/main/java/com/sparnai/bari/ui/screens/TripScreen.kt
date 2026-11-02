@@ -15,6 +15,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.material.icons.filled.DirectionsBus
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.graphics.vector.ImageVector
+import com.sparnai.bari.core.TransportMode
+import com.sparnai.bari.core.TripPlan
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -71,45 +79,87 @@ fun TripScreen(
     onDeleteRoute: (String) -> Unit,
     onShare: (RouteSummary) -> Unit,
 ) {
-    val summaries = remember(state.trip, state.records) { RouteMath.summarizeAll(state.trip, state.records) }
+    val plan = remember(state.trip, state.records) { RouteMath.plan(state.trip, state.records) }
+    var collapsed by rememberSaveable { mutableStateOf(setOf<String>()) }
+    fun LazyListScope.section(key: String, title: String, subtitle: String?, list: List<RouteSummary>) {
+        if (list.isEmpty()) return
+        val open = key !in collapsed
+        item(key = "h_$key") {
+            SectionHeader(title, subtitle, list.size, open) {
+                collapsed = if (open) collapsed + key else collapsed - key
+            }
+        }
+        if (open) {
+            items(list, key = { it.route.id }) { summary ->
+                RouteCard(
+                    summary = summary,
+                    rank = list.indexOf(summary),
+                    passengers = state.trip.passengers,
+                    onOpenSegment = onOpenSegment,
+                    onEdit = { onEditRoute(summary.route) },
+                    onDelete = { onDeleteRoute(summary.route.id) },
+                    onShare = { onShare(summary) },
+                )
+            }
+        }
+    }
+    val outDate = plan.outbound.firstNotNullOfOrNull { it.legs.firstOrNull()?.segment?.date }
+    val backDate = plan.back.firstNotNullOfOrNull { it.legs.lastOrNull()?.segment?.date }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { TripHero(state, summaries.firstOrNull { it.total != null }, onPassengers) }
-        if (summaries.isEmpty()) {
+        item(key = "hero") { TripHero(state, plan, onPassengers) }
+        if (state.trip.routes.isEmpty()) {
             item {
                 Text(
-                    "Dar nėra maršrutų. Pridėkite skrydžius skiltyje „Skrydžiai“ ir sujunkite juos į maršrutą.",
+                    "Dar nėra maršrutų. Pridėkite bilietus skiltyje „Bilietai“ ir sujunkite juos į maršrutą.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
         }
-        items(summaries, key = { it.route.id }) { summary ->
-            RouteCard(
-                summary = summary,
-                rank = summaries.indexOf(summary),
-                passengers = state.trip.passengers,
-                onOpenSegment = onOpenSegment,
-                onEdit = { onEditRoute(summary.route) },
-                onDelete = { onDeleteRoute(summary.route.id) },
-                onShare = { onShare(summary) },
-            )
-        }
-        item {
+        section("out", "Nuvykimas į Barį", outDate?.let { Format.dateShort(it) }, plan.outbound)
+        section("back", "Grįžimas į Vilnių", backDate?.let { Format.dateShort(it) }, plan.back)
+        section("round", "Bilietas į abi puses", null, plan.round)
+        item(key = "add") {
             OutlinedButton(onClick = { onEditRoute(null) }, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Filled.Add, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("Naujas maršruto variantas")
             }
         }
-        item { Spacer(Modifier.height(72.dp)) }
+        item(key = "pad") { Spacer(Modifier.height(72.dp)) }
     }
 }
 
 @Composable
-private fun TripHero(state: AppState, best: RouteSummary?, onPassengers: (Int) -> Unit) {
+private fun SectionHeader(title: String, subtitle: String?, count: Int, open: Boolean, onToggle: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onToggle)
+            .padding(top = 8.dp, bottom = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+            Text(
+                listOfNotNull(subtitle, "$count variantai").joinToString(" · "),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Icon(
+            if (open) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+            contentDescription = if (open) "Suskleisti" else "Išskleisti",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun TripHero(state: AppState, plan: TripPlan, onPassengers: (Int) -> Unit) {
     val scheme = MaterialTheme.colorScheme
     val dates = state.trip.segments.mapNotNull { RouteMath.parseDate(it.date) }
     val start = dates.minOrNull()
@@ -136,20 +186,34 @@ private fun TripHero(state: AppState, best: RouteSummary?, onPassengers: (Int) -
             Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.Bottom) {
                 Column(Modifier.weight(1f)) {
-                    Text("Pigiausias variantas", style = MaterialTheme.typography.labelMedium, color = scheme.onPrimary.copy(alpha = 0.85f))
-                    Text(
-                        Format.euro(best?.total),
-                        style = MaterialTheme.typography.displaySmall,
-                        color = scheme.onPrimary,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        best?.route?.name ?: "Laukiama kainų…",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = scheme.onPrimary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    Text("Pigiausia kelionė į abi puses", style = MaterialTheme.typography.labelMedium, color = scheme.onPrimary.copy(alpha = 0.85f))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            Format.euro(plan.bestTotal),
+                            style = MaterialTheme.typography.displaySmall,
+                            color = scheme.onPrimary,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        TrendPill(plan.bestTotal, plan.previousBestTotal)
+                    }
+                    val lines = when {
+                        plan.bestTotal == null -> listOf("Laukiama kainų…")
+                        plan.roundTripWins -> listOf("🎫 ${plan.bestRound?.route?.name}")
+                        else -> listOf(
+                            "→ ${plan.bestOut?.route?.name} · ${Format.euro(plan.bestOut?.total)}",
+                            "← ${plan.bestBack?.route?.name} · ${Format.euro(plan.bestBack?.total)}",
+                        )
+                    }
+                    lines.forEach {
+                        Text(
+                            it,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = scheme.onPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -227,8 +291,12 @@ private fun RouteCard(
                 }
             }
             if (summary.route.extraCostLabel != null) {
-                val extra = if (summary.route.extraCost > 0) "+ ${Format.euro(summary.route.extraCost)} " else "+ "
-                Text("$extra${summary.route.extraCostLabel}", style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
+                val text = if (summary.route.extraCost > 0) {
+                    "Įskaičiuota ${Format.euro(summary.route.extraCost)}: ${summary.route.extraCostLabel}"
+                } else {
+                    "Neįskaičiuota: ${summary.route.extraCostLabel}"
+                }
+                Text(text, style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
             }
             HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.6f))
             summary.legs.forEachIndexed { index, leg ->
@@ -260,7 +328,7 @@ private fun RouteCard(
 fun LegRow(leg: Leg, onClick: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
     val seg = leg.segment
-    val isTrain = seg.carrier?.contains("Trenitalia", ignoreCase = true) == true || seg.label.contains("Traukin", ignoreCase = true)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -271,13 +339,13 @@ fun LegRow(leg: Leg, onClick: () -> Unit) {
         Box(
             Modifier
                 .size(28.dp)
-                .background(if (seg.isManual) scheme.tertiaryContainer else scheme.primaryContainer, CircleShape),
+                .background(if (seg.mode == TransportMode.FLIGHT) scheme.primaryContainer else scheme.tertiaryContainer, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                if (isTrain) Icons.Filled.Train else Icons.Filled.Flight,
+                modeIcon(seg.mode),
                 contentDescription = null,
-                tint = if (seg.isManual) scheme.onTertiaryContainer else scheme.onPrimaryContainer,
+                tint = if (seg.mode == TransportMode.FLIGHT) scheme.onPrimaryContainer else scheme.onTertiaryContainer,
                 modifier = Modifier.size(16.dp),
             )
         }
@@ -292,8 +360,9 @@ fun LegRow(leg: Leg, onClick: () -> Unit) {
             )
             val flight = leg.fare?.flightNumber?.takeIf { it.isNotBlank() }
             val times = if (leg.departure != null) "${Format.time(leg.departure)}–${Format.time(leg.arrival)}" else null
+            val stops = leg.fare?.stops?.takeIf { it > 0 }?.let { "$it persėd." }
             Text(
-                listOfNotNull(Format.dateShort(seg.date), flight, times).joinToString(" · "),
+                listOfNotNull(Format.dateShort(seg.date), flight, times, stops).joinToString(" · "),
                 style = MaterialTheme.typography.bodySmall,
                 color = scheme.onSurfaceVariant,
                 maxLines = 1,
@@ -305,6 +374,12 @@ fun LegRow(leg: Leg, onClick: () -> Unit) {
             TrendPill(leg.price, leg.previousPrice)
         }
     }
+}
+
+fun modeIcon(mode: TransportMode): ImageVector = when (mode) {
+    TransportMode.FLIGHT -> Icons.Filled.Flight
+    TransportMode.TRAIN -> Icons.Filled.Train
+    TransportMode.BUS -> Icons.Filled.DirectionsBus
 }
 
 @Composable

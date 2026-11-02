@@ -118,7 +118,7 @@ fun SettingsScreen(
                 }
                 ListItem(
                     headlineContent = { Text("Kai pasiekiama tikslinė kaina") },
-                    supportingContent = { Text("Tikslinę kainą nustatykite kiekvienam skrydžiui") },
+                    supportingContent = { Text("Tikslinę kainą nustatykite kiekvienam bilietui") },
                     trailingContent = {
                         Switch(checked = settings.notifyOnTarget, onCheckedChange = { onSettings(settings.copy(notifyOnTarget = it)) })
                     },
@@ -131,13 +131,13 @@ fun SettingsScreen(
             Column {
                 ListItem(
                     headlineContent = { Text(state.trip.name) },
-                    supportingContent = { Text("${state.trip.segments.size} skrydžiai · ${state.trip.routes.size} maršrutai") },
+                    supportingContent = { Text("${state.trip.segments.size} bilietai · ${state.trip.routes.size} maršrutų variantai") },
                     trailingContent = { Icon(Icons.Filled.Edit, contentDescription = "Pervadinti") },
                     modifier = Modifier.clickable { editName = true },
                 )
                 ListItem(
                     headlineContent = { Text("Atkurti numatytąją kelionę") },
-                    supportingContent = { Text("Grąžina Bario maršrutus iš config/trip.json") },
+                    supportingContent = { Text("Grąžina visus numatytuosius Bario maršrutus") },
                     leadingContent = { Icon(Icons.Filled.RestartAlt, contentDescription = null) },
                     modifier = Modifier.clickable { confirm = "reset" },
                 )
@@ -154,7 +154,13 @@ fun SettingsScreen(
             Column {
                 ListItem(
                     headlineContent = { Text("Bari ${BuildConfig.VERSION_NAME}") },
-                    supportingContent = { Text("Kainos tikrinamos per viešą Ryanair kainų paiešką. Kitų vežėjų kainas įveskite rankiniu būdu.") },
+                    supportingContent = {
+                        Text(
+                            "Visos kainos tikrinamos automatiškai telefone: Ryanair – per jų kainų API, kitos aviakompanijos " +
+                                "(Lufthansa, Wizz Air, LOT, Austrian, airBaltic…) – per Google Flights, traukiniai – per Trenitalia, " +
+                                "autobusai – per FlixBus. Pranešimai rodomi tik šiame telefone.",
+                        )
+                    },
                 )
                 ListItem(
                     headlineContent = { Text("Atsisiųsti naujausią versiją") },

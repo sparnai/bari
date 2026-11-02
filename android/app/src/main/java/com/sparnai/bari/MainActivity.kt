@@ -20,7 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AirplaneTicket
-import androidx.compose.material.icons.filled.Flight
+import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -48,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sparnai.bari.core.Direction
 import com.sparnai.bari.core.Format
 import com.sparnai.bari.core.RouteOption
 import com.sparnai.bari.core.RouteSummary
@@ -137,7 +138,7 @@ private fun BariRoot(vm: MainViewModel) {
                         Column {
                             Text(
                                 when (tab) {
-                                    1 -> "Skrydžiai"
+                                    1 -> "Bilietai"
                                     2 -> "Nustatymai"
                                     else -> "Bari ✈"
                                 },
@@ -169,8 +170,8 @@ private fun BariRoot(vm: MainViewModel) {
                     NavigationBarItem(
                         selected = tab == 1,
                         onClick = { tab = 1 },
-                        icon = { Icon(Icons.Filled.Flight, contentDescription = null) },
-                        label = { Text("Skrydžiai") },
+                        icon = { Icon(Icons.Filled.ConfirmationNumber, contentDescription = null) },
+                        label = { Text("Bilietai") },
                     )
                     NavigationBarItem(
                         selected = tab == 2,
@@ -186,7 +187,7 @@ private fun BariRoot(vm: MainViewModel) {
                 ExtendedFloatingActionButton(
                     onClick = { editor = EditorRequest.EditSegment(null) },
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                    text = { Text("Skrydis") },
+                    text = { Text("Bilietas") },
                 )
             }
         },
@@ -265,7 +266,12 @@ private fun BariRoot(vm: MainViewModel) {
 }
 
 private fun shareText(summary: RouteSummary, passengers: Int): String = buildString {
-    append("✈ ").append(summary.route.name).append(": ").append(Format.euro(summary.total))
+    val arrow = when (summary.route.direction) {
+        Direction.OUT -> "→"
+        Direction.BACK -> "←"
+        Direction.ROUND -> "⇄"
+    }
+    append(arrow).append(' ').append(summary.route.name).append(": ").append(Format.euro(summary.total))
     if (passengers > 1) append(" (").append(passengers).append(" keleiviai)")
     append('\n')
     summary.legs.forEach { leg ->

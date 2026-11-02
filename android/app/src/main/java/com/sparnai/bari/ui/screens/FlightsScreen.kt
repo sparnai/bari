@@ -14,9 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Flag
-import androidx.compose.material.icons.filled.FlightTakeoff
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
@@ -32,6 +30,8 @@ import com.sparnai.bari.core.AppState
 import com.sparnai.bari.core.Format
 import com.sparnai.bari.core.RouteMath
 import com.sparnai.bari.core.Segment
+import com.sparnai.bari.core.mode
+import com.sparnai.bari.core.title
 import com.sparnai.bari.ui.components.Pill
 import com.sparnai.bari.ui.components.PriceChart
 import com.sparnai.bari.ui.components.TrendPill
@@ -40,7 +40,7 @@ import com.sparnai.bari.ui.theme.LocalPriceColors
 @Composable
 fun FlightsScreen(state: AppState, onOpen: (String) -> Unit) {
     val grouped = state.trip.segments
-        .sortedWith(compareBy<Segment> { it.date }.thenBy { it.isManual })
+        .sortedWith(compareBy<Segment> { it.date }.thenBy { it.timeFrom ?: it.timeTo ?: "" })
         .groupBy { it.date }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -48,7 +48,7 @@ fun FlightsScreen(state: AppState, onOpen: (String) -> Unit) {
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         if (grouped.isEmpty()) {
-            item { EmptyCard("Nėra stebimų skrydžių. Paspauskite „+“, kad pridėtumėte.") }
+            item { EmptyCard("Nėra stebimų bilietų. Paspauskite „+“, kad pridėtumėte.") }
         }
         grouped.forEach { (date, segments) ->
             item(key = "h_$date") {
@@ -78,7 +78,7 @@ private fun SegmentCard(segment: Segment, state: AppState, onClick: () -> Unit) 
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    if (segment.isManual) Icons.Filled.EditNote else Icons.Filled.FlightTakeoff,
+                    modeIcon(segment.mode),
                     contentDescription = null,
                     tint = scheme.primary,
                     modifier = Modifier.size(20.dp),
@@ -86,10 +86,12 @@ private fun SegmentCard(segment: Segment, state: AppState, onClick: () -> Unit) 
                 Spacer(Modifier.width(8.dp))
                 Column(Modifier.weight(1f)) {
                     Text(segment.label, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    val flight = leg.fare?.flightNumber?.takeIf { it.isNotBlank() }
+                    val flight = leg.fare?.flightNumber?.takeIf { it.isNotBlank() && it != segment.carrier }
                     val times = leg.departure?.let { "${Format.time(it)}–${Format.time(leg.arrival)}" }
+                    val stops = leg.fare?.stops?.takeIf { it > 0 }?.let { "$it persėd." }
                     Text(
-                        listOfNotNull(segment.carrier, flight, times).joinToString(" · ").ifBlank { "${segment.origin} → ${segment.dest}" },
+                        listOfNotNull(leg.fare?.carrier ?: segment.carrier, flight, times, stops).joinToString(" · ")
+                            .ifBlank { "${segment.origin} → ${segment.dest}" },
                         style = MaterialTheme.typography.bodySmall,
                         color = scheme.onSurfaceVariant,
                         maxLines = 1,
@@ -109,9 +111,8 @@ private fun SegmentCard(segment: Segment, state: AppState, onClick: () -> Unit) 
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                if (segment.isManual) {
-                    Pill("Rankinė kaina", scheme.tertiaryContainer, scheme.onTertiaryContainer)
-                } else if (record?.lowest != null) {
+                Pill(segment.source.title, scheme.secondaryContainer, scheme.onSecondaryContainer)
+                if (record?.lowest != null) {
                     Pill("Žemiausia ${Format.euro(record.lowest)}", scheme.surfaceContainerHighest, scheme.onSurfaceVariant)
                 }
                 if (target != null) {
@@ -125,7 +126,7 @@ private fun SegmentCard(segment: Segment, state: AppState, onClick: () -> Unit) 
                     )
                 }
             }
-            if (record?.lastError != null && !segment.isManual) {
+            if (record?.lastError != null) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.Warning, contentDescription = null, tint = LocalPriceColors.current.warn, modifier = Modifier.size(14.dp))
                     Spacer(Modifier.width(4.dp))
@@ -136,13 +137,11 @@ private fun SegmentCard(segment: Segment, state: AppState, onClick: () -> Unit) 
                     )
                 }
             }
-            if (!segment.isManual) {
-                Text(
-                    "Tikrinta ${Format.ago(record?.lastChecked)}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = scheme.onSurfaceVariant,
-                )
-            }
+            Text(
+                "Tikrinta ${Format.ago(record?.lastChecked)}",
+                style = MaterialTheme.typography.labelSmall,
+                color = scheme.onSurfaceVariant,
+            )
         }
     }
 }

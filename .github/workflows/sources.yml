@@ -36,5 +36,6 @@ jobs:
       - name: Google Flights page sample
         continue-on-error: true
         run: |
-          ./gradlew --no-daemon -q :core:run --args="google VNO BRI 2026-12-26"
-          ./gradlew --no-daemon -q :core:run --args="google VIE VNO 2027-01-03"
+          ./gradlew --no-daemon -q :core:run --args="google VNO BRI 2026-12-26 2027-01-03"
+          ./gradlew --no-daemon -q :core:run --args="google VNO FCO 2026-12-26"
+          ./gradlew --no-daemon -q :core:run --args="google VNO VIE 2026-12-26"

@@ -32,7 +32,7 @@ fun main(args: Array<String>) = runBlocking {
     when (args.firstOrNull()) {
         "check" -> check(fetcher, File(args.getOrElse(1) { "config/trip.json" }))
         "discover" -> discover(fetcher, args.drop(1))
-        "google" -> google(fetcher, args[1], args[2], args[3])
+        "google" -> google(fetcher, args[1], args[2], args[3], args.getOrNull(4))
         else -> println("Usage: check [trip.json] | discover | google FROM TO DATE")
     }
 }
@@ -94,6 +94,7 @@ private suspend fun discover(fetcher: PriceFetcher, args: List<String>) {
                 if (hub == dest) continue
                 val arrival = RouteMath.parseLocal(f1.arrival) ?: continue
                 for (d2 in secondDates) {
+                    if (LocalDate.parse(d2).isBefore(arrival.toLocalDate())) continue
                     val sameDay = d2 == arrival.toLocalDate().toString()
                     val earliest = if (sameDay) arrival.plus(minLayover) else LocalDate.parse(d2).atStartOfDay()
                     if (earliest.toLocalDate().toString() != d2) continue
@@ -118,8 +119,8 @@ private suspend fun discover(fetcher: PriceFetcher, args: List<String>) {
     connections(listOf("BRI"), "KUN", back, listOf(back))
 }
 
-private suspend fun google(fetcher: PriceFetcher, from: String, to: String, date: String) {
-    val seg = Segment(id = "g", label = "g", origin = from, dest = to, date = date, source = FareSource.GOOGLE)
+private suspend fun google(fetcher: PriceFetcher, from: String, to: String, date: String, returnDate: String?) {
+    val seg = Segment(id = "g", label = "g", origin = from, dest = to, date = date, source = FareSource.GOOGLE, returnDate = returnDate)
     val url = GoogleFlightsQuery.searchUrl(seg)
     println("URL: $url")
     val html = fetcher.http.get(url, GoogleFlightsQuery.HEADERS)
@@ -127,7 +128,8 @@ private suspend fun google(fetcher: PriceFetcher, from: String, to: String, date
     val labels = Regex("aria-label=\"([^\"]*)\"").findAll(html).map { it.groupValues[1] }
         .filter { it.contains("euro", ignoreCase = true) }.toList()
     println("aria-labels with 'euro': ${labels.size}")
-    labels.take(6).forEach { println("  LABEL: ${it.take(400)}") }
+    labels.filter { it.length > 40 }.take(4).forEach { println("  LABEL: ${it.take(500)}") }
+    if (labels.none { it.contains("Leaves") }) labels.take(10).forEach { println("  SHORT: ${it.take(300)}") }
     val flights = GoogleFlightsParser.parse(html, LocalDate.parse(date))
     println("Parsed flights: ${flights.size}")
     flights.sortedBy { it.price }.take(8).forEach { println("  $it") }

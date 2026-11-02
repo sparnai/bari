@@ -79,6 +79,8 @@ data class Segment(
     val maxStops: Int? = null,
     /** Google Flights: return date for a round-trip ticket (price is the round-trip total). */
     val returnDate: String? = null,
+    /** Google Flights: ignore itineraries longer than this many hours. */
+    val maxHours: Int? = null,
     // Legacy manual legs
     val price: Double? = null,
     val flight: String? = null,
@@ -92,7 +94,7 @@ data class Segment(
 
     /** Changes to these fields mean the tracked fare is a different product, so history restarts. */
     val signature: String
-        get() = listOf(origin, dest, date, timeFrom, timeTo, source, airlines.joinToString(","), maxStops, returnDate)
+        get() = listOf(origin, dest, date, timeFrom, timeTo, source, airlines.joinToString(","), maxStops, returnDate, maxHours)
             .joinToString("-")
 }
 

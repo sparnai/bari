@@ -4,6 +4,37 @@
   "passengers": 1,
   "segments": [
     {
+      "id": "VNO_KUN_BUS",
+      "label": "Autobusas Vilnius → Kaunas",
+      "origin": "Vilnius",
+      "dest": "Kaunas",
+      "date": "2026-12-26",
+      "source": "flixbus",
+      "carrier": "FlixBus",
+      "timeFrom": "08:00",
+      "timeTo": "12:30"
+    },
+    {
+      "id": "KUN_BGY",
+      "label": "Kaunas → Bergamas",
+      "origin": "KUN",
+      "dest": "BGY",
+      "date": "2026-12-26",
+      "source": "ryanair",
+      "carrier": "Ryanair"
+    },
+    {
+      "id": "VNO_ROM",
+      "label": "Vilnius → Roma",
+      "origin": "VNO",
+      "dest": "FCO",
+      "date": "2026-12-26",
+      "source": "google",
+      "maxStops": 1,
+      "maxHours": 8,
+      "timeTo": "12:00"
+    },
+    {
       "id": "VNO_TRN",
       "label": "Vilnius → Turinas",
       "origin": "VNO",
@@ -37,15 +68,6 @@
       "targetPrice": 75
     },
     {
-      "id": "VNO_BGY",
-      "label": "Vilnius → Bergamas",
-      "origin": "VNO",
-      "dest": "BGY",
-      "date": "2026-12-26",
-      "source": "ryanair",
-      "carrier": "Ryanair"
-    },
-    {
       "id": "BGY_BRI",
       "label": "Bergamas → Baris",
       "origin": "BGY",
@@ -53,35 +75,7 @@
       "date": "2026-12-26",
       "source": "ryanair",
       "carrier": "Ryanair",
-      "timeFrom": "10:00"
-    },
-    {
-      "id": "VNO_VIE",
-      "label": "Vilnius → Viena",
-      "origin": "VNO",
-      "dest": "VIE",
-      "date": "2026-12-26",
-      "source": "ryanair",
-      "carrier": "Ryanair"
-    },
-    {
-      "id": "VIE_BRI",
-      "label": "Viena → Baris",
-      "origin": "VIE",
-      "dest": "BRI",
-      "date": "2026-12-26",
-      "source": "ryanair",
-      "carrier": "Ryanair",
-      "timeFrom": "10:00"
-    },
-    {
-      "id": "VNO_CIA",
-      "label": "Vilnius → Roma (Čiampinas)",
-      "origin": "VNO",
-      "dest": "CIA",
-      "date": "2026-12-26",
-      "source": "ryanair",
-      "carrier": "Ryanair"
+      "timeFrom": "19:00"
     },
     {
       "id": "ROMA_BARI_TRAIN",
@@ -114,7 +108,8 @@
       "airlines": [
         "LO"
       ],
-      "maxStops": 0
+      "maxStops": 0,
+      "timeFrom": "12:00"
     },
     {
       "id": "WAW_BRI",
@@ -133,7 +128,8 @@
       "dest": "BRI",
       "date": "2026-12-26",
       "source": "google",
-      "maxStops": 1
+      "maxStops": 2,
+      "maxHours": 12
     },
     {
       "id": "BRI_VIE",
@@ -236,12 +232,13 @@
     },
     {
       "id": "BRI_WAW",
-      "label": "Baris → Varšuva",
+      "label": "Baris → Varšuva (popietė)",
       "origin": "BRI",
       "dest": "WAW",
       "date": "2027-01-03",
       "source": "google",
-      "maxStops": 0
+      "maxStops": 0,
+      "timeTo": "16:30"
     },
     {
       "id": "WAW_VNO",
@@ -264,7 +261,8 @@
       "dest": "VNO",
       "date": "2027-01-03",
       "source": "google",
-      "maxStops": 1
+      "maxStops": 2,
+      "maxHours": 12
     },
     {
       "id": "VNO_BRI_RT",
@@ -274,10 +272,22 @@
       "date": "2026-12-26",
       "source": "google",
       "returnDate": "2027-01-03",
-      "maxStops": 1
+      "maxStops": 2,
+      "maxHours": 12
     }
   ],
   "routes": [
+    {
+      "id": "o_kun_bgy",
+      "name": "Iš Kauno per Bergamą",
+      "direction": "out",
+      "segments": [
+        "VNO_KUN_BUS",
+        "KUN_BGY",
+        "BGY_BRI"
+      ],
+      "note": "FlixBus į Kauną, Ryanair į Bergamą ir vakare į Barį. Iš Kauno oro uosto – autobusas/taksi iš miesto (~20 min.)."
+    },
     {
       "id": "o_trn",
       "name": "Per Turiną (ryto persėdimas)",
@@ -299,46 +309,28 @@
       "note": "Dieną praleidžiate Turine ir į Barį išskrendate vakare – dažnai pigiau."
     },
     {
-      "id": "o_bgy",
-      "name": "Per Bergamą",
-      "direction": "out",
-      "segments": [
-        "VNO_BGY",
-        "BGY_BRI"
-      ]
-    },
-    {
-      "id": "o_vie",
-      "name": "Per Vieną",
-      "direction": "out",
-      "segments": [
-        "VNO_VIE",
-        "VIE_BRI"
-      ]
-    },
-    {
       "id": "o_rome_train",
       "name": "Į Romą + traukinys į Barį",
       "direction": "out",
       "segments": [
-        "VNO_CIA",
+        "VNO_ROM",
         "ROMA_BARI_TRAIN"
       ],
-      "extraCost": 6,
-      "extraCostLabel": "autobusas Čiampinas → Roma Termini",
-      "note": "Traukinys Frecciarossa/Intercity iš Roma Termini į Bari Centrale (~4 val.)."
+      "extraCost": 14,
+      "extraCostLabel": "Leonardo Express Fiumičinas → Roma Termini",
+      "note": "Skrydis į Romą (Google Flights), tada Frecciarossa/Intercity iš Roma Termini į Bari Centrale (~4–5 val.)."
     },
     {
       "id": "o_rome_bus",
       "name": "Į Romą + autobusas į Barį",
       "direction": "out",
       "segments": [
-        "VNO_CIA",
+        "VNO_ROM",
         "ROMA_BARI_BUS"
       ],
-      "extraCost": 6,
-      "extraCostLabel": "autobusas Čiampinas → Roma Tiburtina",
-      "note": "FlixBus iš Romos (Tiburtina) į Barį (~5–6 val.)."
+      "extraCost": 8,
+      "extraCostLabel": "traukinys Fiumičinas → Roma Tiburtina",
+      "note": "Skrydis į Romą, tada FlixBus iš Roma Tiburtina į Barį (~5–6 val.)."
     },
     {
       "id": "o_waw",
@@ -348,7 +340,7 @@
         "VNO_WAW",
         "WAW_BRI"
       ],
-      "note": "LOT į Varšuvą, tada tiesioginis skrydis į Barį (Wizz Air / Ryanair – kainą randa Google Flights)."
+      "note": "LOT LO772 į Varšuvą, tada tiesioginis Wizz Air / Ryanair į Barį (kainą randa Google Flights)."
     },
     {
       "id": "o_ticket",
@@ -357,7 +349,7 @@
       "segments": [
         "VNO_BRI_ONE"
       ],
-      "note": "Pigiausias vieno bilieto variantas su ne daugiau kaip vienu persėdimu (LOT, Lufthansa, Austrian, airBaltic…). Bagažas perkeliamas automatiškai."
+      "note": "Pigiausias vieno bilieto variantas iki 12 val. kelionės (LOT, Lufthansa, ITA, airBaltic…). Bagažas perkeliamas automatiškai, praleidus jungtį – perkels į kitą reisą."
     },
     {
       "id": "b_vie",
@@ -390,6 +382,17 @@
       ],
       "extraCostLabel": "nakvynė Vienoje",
       "note": "Be skubaus persėdimo: šeštadienio vakaras Vienoje, sekmadienį Austrian namo."
+    },
+    {
+      "id": "b_vie_night_fr",
+      "name": "Per Vieną su nakvyne (Ryanair)",
+      "direction": "back",
+      "segments": [
+        "BRI_VIE_SAT",
+        "VIE_VNO"
+      ],
+      "extraCostLabel": "nakvynė Vienoje",
+      "note": "Šeštadienio vakaras Vienoje, sekmadienį Ryanair FR198 namo."
     },
     {
       "id": "b_rome_train",
@@ -428,7 +431,8 @@
       "direction": "back",
       "segments": [
         "BRI_VNO_ONE"
-      ]
+      ],
+      "note": "Pigiausias vieno bilieto variantas iki 12 val. kelionės (LOT, Lufthansa, ITA, airBaltic…). Bagažas perkeliamas automatiškai, praleidus jungtį – perkels į kitą reisą."
     },
     {
       "id": "r_ticket",

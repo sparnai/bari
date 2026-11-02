@@ -16,6 +16,7 @@ import com.sparnai.bari.core.TripMerge
 import com.sparnai.bari.core.withError
 import com.sparnai.bari.core.withFare
 import com.sparnai.bari.core.FareSource
+import com.sparnai.bari.core.TransportMode
 import com.sparnai.bari.core.sources.ApiException
 import com.sparnai.bari.core.sources.PriceFetcher
 import kotlinx.coroutines.delay
@@ -113,7 +114,7 @@ class BariRepository(private val context: Context, private val fetcher: PriceFet
             var ok = 0
             var failed = 0
             update { st ->
-                val bestBefore = RouteMath.summarizeAll(st.trip, st.records).firstOrNull { it.total != null }
+                val bestBefore = RouteMath.plan(st.trip, st.records).bestTotal
                 val records = st.records.toMutableMap()
                 for ((segment, result) in results) {
                     // The segment may have been edited or removed while we were waiting for the network.
@@ -133,15 +134,15 @@ class BariRepository(private val context: Context, private val fetcher: PriceFet
                         }
                         else -> {
                             failed++
-                            (before ?: SegmentRecord()).withError("Šią dieną skrydžių nerasta", now, segment.signature)
+                            val what = if (segment.mode == TransportMode.FLIGHT) "skrydžių" else "reisų"
+                            (before ?: SegmentRecord()).withError("Šią dieną tinkamų $what nerasta", now, segment.signature)
                         }
                     }
                 }
-                val bestAfter = RouteMath.summarizeAll(st.trip, records).firstOrNull { it.total != null }
-                if (alerts.isNotEmpty() && bestAfter?.total != null) {
-                    val prev = bestBefore?.total
-                    val suffix = if (prev != null && bestAfter.total < prev) " (${Format.delta(bestAfter.total - prev)})" else ""
-                    alerts += "💶 Pigiausias variantas: ${bestAfter.route.name} – ${Format.euro(bestAfter.total)}$suffix"
+                val bestAfter = RouteMath.plan(st.trip, records).bestTotal
+                if (alerts.isNotEmpty() && bestAfter != null) {
+                    val suffix = if (bestBefore != null && bestAfter < bestBefore) " (${Format.delta(bestAfter - bestBefore)})" else ""
+                    alerts += "💶 Pigiausia kelionė į abi puses: ${Format.euro(bestAfter)}$suffix"
                 }
                 st.copy(records = records, lastRefresh = now)
             }

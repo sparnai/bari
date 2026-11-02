@@ -46,6 +46,7 @@ class GoogleFlights(private val http: Http) {
         val matching = all.filter { f ->
             val dep = f.departure?.toLocalTime()
             (segment.maxStops == null || f.stops == null || f.stops <= segment.maxStops) &&
+                (segment.maxHours == null || f.durationMinutes == null || f.durationMinutes <= segment.maxHours * 60) &&
                 (dep == null || ((from == null || !dep.isBefore(from)) && (to == null || !dep.isAfter(to))))
         }
         val best = matching.minByOrNull { it.price } ?: return null

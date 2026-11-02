@@ -1,10 +1,12 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 
 package com.sparnai.bari.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -35,7 +37,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.sparnai.bari.core.Direction
 import com.sparnai.bari.core.FareSource
+import com.sparnai.bari.core.TransportMode
+import com.sparnai.bari.core.mode
 import com.sparnai.bari.core.Format
 import com.sparnai.bari.core.RouteMath
 import com.sparnai.bari.core.RouteOption
@@ -60,81 +65,104 @@ fun SegmentEditorDialog(
     onSave: (segment: Segment, previousId: String?) -> Unit,
 ) {
     val defaultDate = trip.segments.mapNotNull { RouteMath.parseDate(it.date) }.minOrNull() ?: LocalDate.now().plusDays(30)
-    var source by remember { mutableStateOf(existing?.source ?: FareSource.RYANAIR) }
+    var source by remember {
+        mutableStateOf(existing?.source?.takeIf { it != FareSource.MANUAL } ?: FareSource.RYANAIR)
+    }
     var origin by remember { mutableStateOf(existing?.origin.orEmpty()) }
     var dest by remember { mutableStateOf(existing?.dest.orEmpty()) }
     var date by remember { mutableStateOf(existing?.date ?: defaultDate.toString()) }
     var label by remember { mutableStateOf(existing?.label.orEmpty()) }
-    var carrier by remember { mutableStateOf(existing?.carrier.orEmpty()) }
     var timeFrom by remember { mutableStateOf(existing?.timeFrom.orEmpty()) }
     var timeTo by remember { mutableStateOf(existing?.timeTo.orEmpty()) }
     var target by remember { mutableStateOf(money(existing?.targetPrice)) }
-    var price by remember { mutableStateOf(money(existing?.price)) }
-    var flight by remember { mutableStateOf(existing?.flight.orEmpty()) }
-    var departure by remember { mutableStateOf(existing?.departure.orEmpty()) }
-    var arrival by remember { mutableStateOf(existing?.arrival.orEmpty()) }
+    var airlines by remember { mutableStateOf(existing?.airlines.orEmpty().joinToString(", ")) }
+    var maxStops by remember { mutableStateOf(existing?.maxStops) }
+    var returnDate by remember { mutableStateOf(existing?.returnDate.orEmpty()) }
+    var maxHours by remember { mutableStateOf(existing?.maxHours) }
 
-    val originOk = iataRegex.matches(origin)
-    val destOk = iataRegex.matches(dest)
+    val isFlight = source.mode == TransportMode.FLIGHT
+    fun placeOk(v: String) = if (isFlight) iataRegex.matches(v) else v.isNotBlank()
+    val originOk = placeOk(origin)
+    val destOk = placeOk(dest)
     val parsedDate = RouteMath.parseDate(date)
+    val parsedReturn = RouteMath.parseDate(returnDate)
     fun timeOk(t: String) = t.isBlank() || RouteMath.parseTime(t) != null
-    val manual = source == FareSource.MANUAL
-    val priceOk = !manual || parseMoney(price) != null
     val targetOk = target.isBlank() || parseMoney(target) != null
-    val valid = originOk && destOk && parsedDate != null && priceOk && targetOk &&
-        timeOk(timeFrom) && timeOk(timeTo) && timeOk(departure) && timeOk(arrival)
+    val returnOk = source != FareSource.GOOGLE || returnDate.isBlank() || (parsedReturn != null && parsedDate != null && !parsedReturn.isBefore(parsedDate))
+    val valid = originOk && destOk && parsedDate != null && targetOk && returnOk && timeOk(timeFrom) && timeOk(timeTo)
+    val placeHint = when (source) {
+        FareSource.TRENITALIA -> "Stotis" to ("Roma Termini" to "Bari Centrale")
+        FareSource.FLIXBUS -> "Miestas" to ("Rome" to "Bari")
+        else -> "IATA" to ("VNO" to "BRI")
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (existing == null) "Naujas skrydis" else "Redaguoti skrydį") },
+        title = { Text(if (existing == null) "Naujas bilietas" else "Redaguoti bilietą") },
         text = {
             Column(
-                Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
+                Modifier.heightIn(max = 560.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = !manual, onClick = { source = FareSource.RYANAIR }, label = { Text("Ryanair (automatiškai)") })
-                    FilterChip(selected = manual, onClick = { source = FareSource.MANUAL }, label = { Text("Rankinė kaina") })
+                Text("Kainos šaltinis (tikrinama automatiškai)", style = MaterialTheme.typography.labelMedium)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(
+                        FareSource.RYANAIR to "Ryanair",
+                        FareSource.GOOGLE to "Kitos aviakompanijos",
+                        FareSource.TRENITALIA to "Traukinys",
+                        FareSource.FLIXBUS to "Autobusas",
+                    ).forEach { (value, text) ->
+                        FilterChip(
+                            selected = source == value,
+                            onClick = {
+                                if (source.mode != value.mode) {
+                                    origin = ""
+                                    dest = ""
+                                }
+                                source = value
+                            },
+                            label = { Text(text) },
+                        )
+                    }
                 }
+                Text(
+                    when (source) {
+                        FareSource.RYANAIR -> "Ryanair kainų API."
+                        FareSource.GOOGLE -> "Google Flights: Lufthansa, Wizz Air, LOT, Austrian, airBaltic ir kt."
+                        FareSource.TRENITALIA -> "Trenitalia (Italijos traukiniai)."
+                        FareSource.FLIXBUS -> "FlixBus autobusai."
+                        FareSource.MANUAL -> ""
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = origin,
-                        onValueChange = { origin = it.uppercase().filter(Char::isLetter).take(3) },
-                        label = { Text("Iš (IATA)") },
-                        placeholder = { Text("VNO") },
+                        onValueChange = { origin = if (isFlight) it.uppercase().filter(Char::isLetter).take(3) else it },
+                        label = { Text("Iš (${placeHint.first})") },
+                        placeholder = { Text(placeHint.second.first) },
                         isError = origin.isNotEmpty() && !originOk,
                         singleLine = true,
-                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = if (isFlight) KeyboardCapitalization.Characters else KeyboardCapitalization.Words,
+                        ),
                         modifier = Modifier.weight(1f),
                     )
                     OutlinedTextField(
                         value = dest,
-                        onValueChange = { dest = it.uppercase().filter(Char::isLetter).take(3) },
-                        label = { Text("Į (IATA)") },
-                        placeholder = { Text("BRI") },
+                        onValueChange = { dest = if (isFlight) it.uppercase().filter(Char::isLetter).take(3) else it },
+                        label = { Text("Į (${placeHint.first})") },
+                        placeholder = { Text(placeHint.second.second) },
                         isError = dest.isNotEmpty() && !destOk,
                         singleLine = true,
-                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = if (isFlight) KeyboardCapitalization.Characters else KeyboardCapitalization.Words,
+                        ),
                         modifier = Modifier.weight(1f),
                     )
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { parsedDate?.let { date = it.minusDays(1).toString() } }) {
-                        Icon(Icons.Filled.ChevronLeft, contentDescription = "Diena anksčiau")
-                    }
-                    OutlinedTextField(
-                        value = date,
-                        onValueChange = { date = it.take(10) },
-                        label = { Text("Data (MMMM-MM-DD)") },
-                        isError = parsedDate == null,
-                        supportingText = { parsedDate?.let { Text(Format.dateLong(it)) } },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
-                    )
-                    IconButton(onClick = { parsedDate?.let { date = it.plusDays(1).toString() } }) {
-                        Icon(Icons.Filled.ChevronRight, contentDescription = "Diena vėliau")
-                    }
-                }
+                DateField(date, { date = it }, "Data (MMMM-MM-DD)", parsedDate)
                 OutlinedTextField(
                     value = label,
                     onValueChange = { label = it },
@@ -143,45 +171,35 @@ fun SegmentEditorDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                if (!manual) {
-                    Text("Išvykimo laiko langas (nebūtina) – pvz. tik ryto reisai", style = MaterialTheme.typography.labelMedium)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TimeField(timeFrom, { timeFrom = it }, "Nuo (HH:mm)", Modifier.weight(1f))
-                        TimeField(timeTo, { timeTo = it }, "Iki (HH:mm)", Modifier.weight(1f))
-                    }
-                } else {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = price,
-                            onValueChange = { price = it },
-                            label = { Text("Kaina asmeniui, €") },
-                            isError = !priceOk,
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            modifier = Modifier.weight(1f),
-                        )
-                        OutlinedTextField(
-                            value = flight,
-                            onValueChange = { flight = it },
-                            label = { Text("Reisas") },
-                            placeholder = { Text("OS917") },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TimeField(departure, { departure = it }, "Išvyksta", Modifier.weight(1f))
-                        TimeField(arrival, { arrival = it }, "Atvyksta", Modifier.weight(1f))
-                    }
+                Text("Išvykimo laiko langas (nebūtina) – pvz. tik ryto reisai", style = MaterialTheme.typography.labelMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TimeField(timeFrom, { timeFrom = it }, "Nuo (HH:mm)", Modifier.weight(1f))
+                    TimeField(timeTo, { timeTo = it }, "Iki (HH:mm)", Modifier.weight(1f))
                 }
-                OutlinedTextField(
-                    value = carrier,
-                    onValueChange = { carrier = it },
-                    label = { Text("Vežėjas (nebūtina)") },
-                    placeholder = { Text(if (manual) "Austrian Airlines" else "Ryanair") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                if (source == FareSource.GOOGLE) {
+                    OutlinedTextField(
+                        value = airlines,
+                        onValueChange = { airlines = it.uppercase() },
+                        label = { Text("Tik šios aviakompanijos (nebūtina)") },
+                        placeholder = { Text("pvz. LO, OS, W6, LH, BT") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Text("Persėdimai", style = MaterialTheme.typography.labelMedium)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(null to "Bet kiek", 0 to "Tik tiesioginiai", 1 to "Iki 1").forEach { (value, text) ->
+                            FilterChip(selected = maxStops == value, onClick = { maxStops = value }, label = { Text(text) })
+                        }
+                    }
+                    Text("Didžiausia kelionės trukmė", style = MaterialTheme.typography.labelMedium)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(null to "Bet kokia", 6 to "≤ 6 val.", 12 to "≤ 12 val.").forEach { (value, text) ->
+                            FilterChip(selected = maxHours == value, onClick = { maxHours = value }, label = { Text(text) })
+                        }
+                    }
+                    DateField(returnDate, { returnDate = it }, "Grįžimo data – bilietas į abi puses (nebūtina)", parsedReturn, optional = true)
+                }
                 OutlinedTextField(
                     value = target,
                     onValueChange = { target = it },
@@ -197,22 +215,30 @@ fun SegmentEditorDialog(
             TextButton(
                 enabled = valid,
                 onClick = {
-                    val id = existing?.id ?: RouteMath.newSegmentId(origin, dest, date, trip.segments.map { it.id })
+                    val o = origin.trim()
+                    val d = dest.trim()
+                    val id = existing?.id ?: RouteMath.newSegmentId(o, d, date, trip.segments.map { it.id })
+                    val google = source == FareSource.GOOGLE
                     val segment = Segment(
                         id = id,
-                        label = label.trim().ifBlank { "${Format.city(origin)} → ${Format.city(dest)}" },
-                        origin = origin,
-                        dest = dest,
+                        label = label.trim().ifBlank { "${Format.city(o)} → ${Format.city(d)}" },
+                        origin = o,
+                        dest = d,
                         date = parsedDate.toString(),
                         source = source,
-                        carrier = carrier.trim().ifBlank { if (manual) null else "Ryanair" },
-                        timeFrom = if (manual) null else timeFrom.normalizedTime(),
-                        timeTo = if (manual) null else timeTo.normalizedTime(),
+                        carrier = when (source) {
+                            FareSource.RYANAIR -> "Ryanair"
+                            FareSource.TRENITALIA -> "Trenitalia"
+                            FareSource.FLIXBUS -> "FlixBus"
+                            else -> existing?.takeIf { it.source == FareSource.GOOGLE }?.carrier
+                        },
+                        timeFrom = timeFrom.normalizedTime(),
+                        timeTo = timeTo.normalizedTime(),
                         targetPrice = parseMoney(target),
-                        price = if (manual) parseMoney(price) else null,
-                        flight = if (manual) flight.trim().ifBlank { null } else null,
-                        departure = if (manual) departure.normalizedTime() else null,
-                        arrival = if (manual) arrival.normalizedTime() else null,
+                        airlines = if (google) airlines.split(',', ' ', ';').map { it.trim() }.filter { it.length == 2 } else emptyList(),
+                        maxStops = if (google) maxStops else null,
+                        returnDate = if (google) parsedReturn?.toString() else null,
+                        maxHours = if (google) maxHours else null,
                     )
                     onSave(segment, existing?.id)
                 },
@@ -220,6 +246,27 @@ fun SegmentEditorDialog(
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Atšaukti") } },
     )
+}
+
+@Composable
+private fun DateField(value: String, onChange: (String) -> Unit, label: String, parsed: LocalDate?, optional: Boolean = false) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = { parsed?.let { onChange(it.minusDays(1).toString()) } }) {
+            Icon(Icons.Filled.ChevronLeft, contentDescription = "Diena anksčiau")
+        }
+        OutlinedTextField(
+            value = value,
+            onValueChange = { onChange(it.take(10)) },
+            label = { Text(label) },
+            isError = parsed == null && !(optional && value.isBlank()),
+            supportingText = { parsed?.let { Text(Format.dateLong(it)) } },
+            singleLine = true,
+            modifier = Modifier.weight(1f),
+        )
+        IconButton(onClick = { parsed?.let { onChange(it.plusDays(1).toString()) } }) {
+            Icon(Icons.Filled.ChevronRight, contentDescription = "Diena vėliau")
+        }
+    }
 }
 
 private fun String.normalizedTime(): String? =
@@ -252,6 +299,7 @@ fun RouteEditorDialog(
     var extra by remember { mutableStateOf(money(existing?.extraCost?.takeIf { it > 0 })) }
     var extraLabel by remember { mutableStateOf(existing?.extraCostLabel.orEmpty()) }
     val selected = remember { mutableStateListOf<String>().apply { addAll(existing?.segments.orEmpty()) } }
+    var direction by remember { mutableStateOf(existing?.direction ?: Direction.OUT) }
     val ordered = trip.segments.sortedWith(compareBy<Segment> { it.date }.thenBy { it.departure ?: it.timeFrom ?: "" })
     val extraOk = extra.isBlank() || parseMoney(extra) != null
     val valid = name.isNotBlank() && selected.isNotEmpty() && extraOk
@@ -271,7 +319,12 @@ fun RouteEditorDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Text("Skrydžiai (eilės tvarka pagal datą)", style = MaterialTheme.typography.labelMedium)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(Direction.OUT to "Nuvykimas", Direction.BACK to "Grįžimas", Direction.ROUND to "Į abi puses").forEach { (value, text) ->
+                        FilterChip(selected = direction == value, onClick = { direction = value }, label = { Text(text) })
+                    }
+                }
+                Text("Bilietai (eilės tvarka pagal datą)", style = MaterialTheme.typography.labelMedium)
                 ordered.forEach { seg ->
                     val checked = seg.id in selected
                     Row(
@@ -291,7 +344,7 @@ fun RouteEditorDialog(
                     OutlinedTextField(
                         value = extra,
                         onValueChange = { extra = it },
-                        label = { Text("Papildomai, €") },
+                        label = { Text("Papildomai asmeniui, €") },
                         isError = !extraOk,
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -301,7 +354,7 @@ fun RouteEditorDialog(
                         value = extraLabel,
                         onValueChange = { extraLabel = it },
                         label = { Text("Už ką") },
-                        placeholder = { Text("nakvynė") },
+                        placeholder = { Text("pvz. autobusas į oro uostą") },
                         singleLine = true,
                         modifier = Modifier.weight(1.4f),
                     )
@@ -329,6 +382,7 @@ fun RouteEditorDialog(
                             id = id,
                             name = name.trim(),
                             segments = selected.sortedBy { order.indexOf(it).let { i -> if (i < 0) Int.MAX_VALUE else i } },
+                            direction = direction,
                             extraCost = parseMoney(extra) ?: 0.0,
                             extraCostLabel = extraLabel.trim().ifBlank { null },
                             note = note.trim().ifBlank { null },

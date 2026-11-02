@@ -46,7 +46,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.sparnai.bari.core.AppState
 import com.sparnai.bari.core.DayFare
+import com.sparnai.bari.core.FareSource
 import com.sparnai.bari.core.Format
+import com.sparnai.bari.core.title
 import com.sparnai.bari.core.RouteMath
 import com.sparnai.bari.core.Segment
 import com.sparnai.bari.core.round2
@@ -81,7 +83,7 @@ fun SegmentDetailScreen(
             Card(colors = CardDefaults.cardColors(containerColor = scheme.primaryContainer), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        "${Format.city(segment.origin)} (${segment.origin}) → ${Format.city(segment.dest)} (${segment.dest})",
+                        "${place(segment.origin)} → ${place(segment.dest)}",
                         style = MaterialTheme.typography.titleMedium,
                         color = scheme.onPrimaryContainer,
                     )
@@ -108,20 +110,30 @@ fun SegmentDetailScreen(
                         color = scheme.onPrimaryContainer,
                     )
                     val window = listOfNotNull(segment.timeFrom?.let { "nuo $it" }, segment.timeTo?.let { "iki $it" })
-                    if (!segment.isManual && window.isNotEmpty()) {
+                    val filters = listOfNotNull(
+                        window.takeIf { it.isNotEmpty() }?.let { "išvykimas ${it.joinToString(" ")}" },
+                        segment.airlines.takeIf { it.isNotEmpty() }?.let { "tik ${it.joinToString(", ")}" },
+                        when (segment.maxStops) {
+                            null -> null
+                            0 -> "tik tiesioginiai"
+                            else -> "iki ${segment.maxStops} persėd."
+                        },
+                        segment.maxHours?.let { "iki $it val." },
+                        segment.returnDate?.let { "atgal ${Format.dateShort(it)}" },
+                    )
+                    if (filters.isNotEmpty()) {
                         Text(
-                            "Ieškoma išvykimų ${window.joinToString(" ")}",
+                            "Ieškoma: ${filters.joinToString(" · ")}",
                             style = MaterialTheme.typography.labelMedium,
                             color = scheme.onPrimaryContainer.copy(alpha = 0.8f),
                         )
                     }
-                    if (!segment.isManual) {
-                        Text(
-                            "Tikrinta ${Format.ago(record?.lastChecked)}" + (record?.lastError?.let { " · $it" } ?: ""),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = scheme.onPrimaryContainer.copy(alpha = 0.8f),
-                        )
-                    }
+                    Text(
+                        "${segment.source.title} · tikrinta ${Format.ago(record?.lastChecked)}" +
+                            (record?.lastError?.let { " · $it" } ?: ""),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = scheme.onPrimaryContainer.copy(alpha = 0.8f),
+                    )
                 }
             }
         }
@@ -134,7 +146,15 @@ fun SegmentDetailScreen(
                 ) {
                     Icon(Icons.Filled.OpenInNew, contentDescription = null)
                     Spacer(Modifier.width(6.dp))
-                    Text(if (segment.isManual) "Ieškoti" else "Rezervuoti")
+                    Text(
+                        when (segment.source) {
+                            FareSource.RYANAIR -> "Rezervuoti Ryanair"
+                            FareSource.GOOGLE -> "Google Flights"
+                            FareSource.TRENITALIA -> "Trenitalia"
+                            FareSource.FLIXBUS -> "FlixBus"
+                            FareSource.MANUAL -> "Ieškoti"
+                        },
+                    )
                 }
                 OutlinedButton(onClick = onEdit) {
                     Icon(Icons.Filled.Edit, contentDescription = "Redaguoti")
@@ -174,7 +194,7 @@ fun SegmentDetailScreen(
           }
         }
 
-        if (!segment.isManual) {
+        if (segment.source == FareSource.RYANAIR) {
             item {
                 Column {
                     SectionTitle("Gretimos dienos (±3 d.)")
@@ -219,6 +239,8 @@ fun SegmentDetailScreen(
         )
     }
 }
+
+private fun place(code: String): String = Format.city(code).let { if (it == code) it else "$it ($code)" }
 
 @Composable
 private fun Stat(label: String, value: String) {

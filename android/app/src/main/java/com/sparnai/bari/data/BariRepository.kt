@@ -13,6 +13,7 @@ import com.sparnai.bari.core.Segment
 import com.sparnai.bari.core.SegmentRecord
 import com.sparnai.bari.core.TripConfig
 import com.sparnai.bari.core.TripMerge
+import com.sparnai.bari.core.title
 import com.sparnai.bari.core.withError
 import com.sparnai.bari.core.withFare
 import com.sparnai.bari.core.FareSource
@@ -28,6 +29,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
@@ -35,6 +37,9 @@ import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.time.YearMonth
+
+/** How far a price check got: [done] of [total] segments, [current] = what is being checked now. */
+data class RefreshProgress(val done: Int, val total: Int, val current: String? = null)
 
 data class RefreshOutcome(
     val alerts: List<String>,
@@ -53,6 +58,9 @@ class BariRepository(private val context: Context, private val fetcher: PriceFet
 
     private val _refreshing = MutableStateFlow(false)
     val refreshing: StateFlow<Boolean> = _refreshing.asStateFlow()
+
+    private val _progress = MutableStateFlow<RefreshProgress?>(null)
+    val progress: StateFlow<RefreshProgress?> = _progress.asStateFlow()
 
     fun defaultTrip(): TripConfig = runCatching {
         context.assets.open("trip.json").bufferedReader().use {
@@ -98,6 +106,7 @@ class BariRepository(private val context: Context, private val fetcher: PriceFet
             // Buses / trains that are switched off are not checked (and do not notify).
             val allowed = snapshot.settings.allowedModes
             val toCheck = snapshot.trip.segments.filter { !it.isManual && it.mode in allowed }
+            _progress.value = RefreshProgress(0, toCheck.size)
             // Google Flights is a web page, not an API: ask one page at a time, politely.
             val apiGate = Semaphore(3)
             val pageGate = Semaphore(1)
@@ -107,7 +116,10 @@ class BariRepository(private val context: Context, private val fetcher: PriceFet
                         val gate = if (segment.source == FareSource.GOOGLE) pageGate else apiGate
                         gate.withPermit {
                             if (segment.source == FareSource.GOOGLE) delay(800)
-                            segment to runCatching { fetcher.fetch(segment) }
+                            _progress.update { it?.copy(current = "${segment.source.title} · ${segment.label}") }
+                            val result = segment to runCatching { fetcher.fetch(segment) }
+                            _progress.update { it?.copy(done = it.done + 1) }
+                            result
                         }
                     }
                 }.awaitAll()
@@ -158,6 +170,7 @@ class BariRepository(private val context: Context, private val fetcher: PriceFet
             return RefreshOutcome(alerts, ok, failed)
         } finally {
             _refreshing.value = false
+            _progress.value = null
         }
     }
 

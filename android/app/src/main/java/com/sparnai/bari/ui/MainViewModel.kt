@@ -11,6 +11,7 @@ import com.sparnai.bari.core.PriceScope
 import com.sparnai.bari.core.RouteOption
 import com.sparnai.bari.core.Segment
 import com.sparnai.bari.core.TransportMode
+import com.sparnai.bari.data.RefreshProgress
 import com.sparnai.bari.work.PriceCheckWorker
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -23,6 +24,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val state: StateFlow<AppState> = repository.state
     val refreshing: StateFlow<Boolean> = repository.refreshing
+    val progress: StateFlow<RefreshProgress?> = repository.progress
 
     private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val messages: SharedFlow<String> = _messages.asSharedFlow()

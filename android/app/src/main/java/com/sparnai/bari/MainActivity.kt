@@ -13,6 +13,13 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -45,14 +52,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sparnai.bari.core.Direction
 import com.sparnai.bari.core.Format
 import com.sparnai.bari.core.RouteOption
 import com.sparnai.bari.core.RouteSummary
 import com.sparnai.bari.core.Segment
+import com.sparnai.bari.ui.components.RefreshIcon
+import com.sparnai.bari.ui.components.RefreshOverlay
 import com.sparnai.bari.ui.MainViewModel
 import com.sparnai.bari.ui.screens.FlightsScreen
 import com.sparnai.bari.ui.screens.RouteEditorDialog
@@ -86,6 +97,12 @@ private sealed interface EditorRequest {
 private fun BariRoot(vm: MainViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
     val refreshing by vm.refreshing.collectAsStateWithLifecycle()
+    val progress by vm.progress.collectAsStateWithLifecycle()
+    // The big "checking prices" layer can be hidden; it comes back with the next check.
+    var overlayHidden by remember { mutableStateOf(false) }
+    LaunchedEffect(refreshing) { if (refreshing) overlayHidden = false }
+    val showOverlay = refreshing && !overlayHidden
+    val blur by animateDpAsState(if (showOverlay) 16.dp else 0.dp, label = "blur")
     val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
 
@@ -116,7 +133,9 @@ private fun BariRoot(vm: MainViewModel) {
     BackHandler(enabled = detailId != null) { detailId = null }
     BackHandler(enabled = detailId == null && tab != 0) { tab = 0 }
 
+    Box(Modifier.fillMaxSize()) {
     Scaffold(
+        modifier = Modifier.blur(blur),
         topBar = {
             if (detailSegment != null) {
                 TopAppBar(
@@ -128,7 +147,7 @@ private fun BariRoot(vm: MainViewModel) {
                     },
                     actions = {
                         IconButton(onClick = vm::refresh, enabled = !refreshing) {
-                            Icon(Icons.Filled.Refresh, contentDescription = "Atnaujinti")
+                            RefreshIcon(spinning = refreshing)
                         }
                     },
                 )
@@ -154,7 +173,7 @@ private fun BariRoot(vm: MainViewModel) {
                     },
                     actions = {
                         IconButton(onClick = vm::refresh, enabled = !refreshing) {
-                            Icon(Icons.Filled.Refresh, contentDescription = "Atnaujinti")
+                            RefreshIcon(spinning = refreshing)
                         }
                     },
                 )
@@ -245,6 +264,14 @@ private fun BariRoot(vm: MainViewModel) {
                 )
             }
         }
+    }
+    AnimatedVisibility(
+        visible = showOverlay,
+        enter = fadeIn() + scaleIn(initialScale = 0.92f),
+        exit = fadeOut() + scaleOut(targetScale = 0.92f),
+    ) {
+        RefreshOverlay(progress, onHide = { overlayHidden = true })
+    }
     }
 
     when (val request = editor) {

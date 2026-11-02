@@ -35,6 +35,7 @@ fun main(args: Array<String>) = runBlocking {
         "google" -> google(fetcher, args[1], args[2], args[3], args.getOrNull(4))
         "bus" -> bus(fetcher, args[1], args[2], args[3])
         "ryanair" -> ryanair(fetcher, args[1], args[2], args[3])
+        "ryanair-day" -> ryanairDay(fetcher, args[1], args[2], args[3])
         else -> println("Usage: check [trip.json] | discover | google FROM TO DATE")
     }
 }
@@ -155,4 +156,20 @@ private suspend fun ryanair(fetcher: PriceFetcher, from: String, to: String, dat
     val seg = Segment(id = "r", label = "r", origin = from, dest = to, date = date)
     val fare = runCatching { fetcher.ryanair.cheapestFare(seg) }
     println("== Ryanair $from → $to, $date: ${fare.getOrNull()?.let { fareText(it) } ?: fare.exceptionOrNull()?.message ?: "nėra skrydžių"}")
+}
+
+/** Every Ryanair flight of a day: the fare finder returns only the cheapest, so ask hour window by hour window. */
+private suspend fun ryanairDay(fetcher: PriceFetcher, from: String, to: String, date: String) {
+    println("== Ryanair $from → $to, $date – visi skrydžiai ==")
+    val seen = mutableSetOf<String>()
+    var start = 0
+    while (start < 24) {
+        val seg = Segment(id = "r", label = "r", origin = from, dest = to, date = date,
+            timeFrom = "%02d:00".format(start), timeTo = "23:59")
+        val fare = runCatching { fetcher.ryanair.cheapestFare(seg) }.getOrNull() ?: break
+        val dep = RouteMath.parseLocal(fare.departure) ?: break
+        if (seen.add(fare.flightNumber + fare.departure)) println("  ${fareText(fare)}")
+        start = dep.hour + 1
+    }
+    if (seen.isEmpty()) println("  nėra skrydžių")
 }

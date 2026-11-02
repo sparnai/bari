@@ -43,6 +43,23 @@ jobs:
           ./gradlew --no-daemon -q :core:run --args="ryanair WAW BRI 2026-12-26"
           ./gradlew --no-daemon -q :core:run --args="ryanair BRI WMI 2027-01-03"
 
+      - name: Turin and Budapest options
+        continue-on-error: true
+        run: |
+          ./gradlew --no-daemon -q :core:run --args="ryanair-day VNO TRN 2026-12-26"
+          ./gradlew --no-daemon -q :core:run --args="ryanair-day TRN BRI 2026-12-26"
+          ./gradlew --no-daemon -q :core:run --args="ryanair-day BRI TRN 2027-01-02"
+          ./gradlew --no-daemon -q :core:run --args="ryanair-day TRN VNO 2027-01-02"
+          ./gradlew --no-daemon -q :core:run --args="ryanair-day TRN VNO 2027-01-03"
+          ./gradlew --no-daemon -q :core:run --args="ryanair-day VNO BUD 2026-12-26"
+          ./gradlew --no-daemon -q :core:run --args="ryanair-day BUD BRI 2026-12-26"
+          ./gradlew --no-daemon -q :core:run --args="ryanair-day BRI BUD 2027-01-03"
+          ./gradlew --no-daemon -q :core:run --args="ryanair-day BUD VNO 2027-01-03"
+          ./gradlew --no-daemon -q :core:run --args="google VNO BUD 2026-12-26"
+          ./gradlew --no-daemon -q :core:run --args="google BUD BRI 2026-12-26"
+          ./gradlew --no-daemon -q :core:run --args="google BRI BUD 2027-01-03"
+          ./gradlew --no-daemon -q :core:run --args="google BUD VNO 2027-01-03"
+
       - name: Google Flights page sample
         continue-on-error: true
         run: |

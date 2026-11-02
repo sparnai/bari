@@ -300,6 +300,24 @@ class CoreTest {
     }
 
     @Test
+    fun pricesForAllPassengers() {
+        assertEquals("251,98$nb€", Format.total(125.99, 2))
+        assertEquals("—", Format.total(null, 2))
+        assertEquals("2 keleiviams", Format.passengers(2))
+        val s = seg("A", "VNO", "TRN", target = 100.0)
+        val before = SegmentRecord(signature = s.signature, fare = Fare(128.0))
+        val alerts = RouteMath.alertsFor(s, before, Fare(99.0), AppSettings(), passengers = 2)
+        assertTrue(alerts[0], alerts[0].contains("198$nb€ (2 keleiviams)") && alerts[0].contains("buvo 256$nb€") && alerts[0].contains("−58$nb€"))
+        assertTrue(alerts[1], alerts[1].contains("(200$nb€)"))
+        // Threshold applies to the amount shown (all passengers): 0,60 € per person × 2 = 1,20 € ≥ 1 €.
+        val small = RouteMath.alertsFor(s, before.copy(fare = Fare(99.6)), Fare(99.0), AppSettings(notifyOnTarget = false), passengers = 2)
+        assertEquals(1, small.size)
+        val bookTwo = RouteMath.bookingUrl(s.copy(source = FareSource.GOOGLE), null, passengers = 2)
+        val one = GoogleFlightsQuery.searchUrl(s.copy(source = FareSource.GOOGLE))
+        assertTrue(bookTwo != one && bookTwo.startsWith("https://www.google.com/travel/flights?tfs="))
+    }
+
+    @Test
     fun stateRoundTrip() {
         val state = AppState(
             trip = TripConfig(segments = listOf(seg("A", "VNO", "TRN"))),

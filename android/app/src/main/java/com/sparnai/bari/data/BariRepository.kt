@@ -124,7 +124,7 @@ class BariRepository(private val context: Context, private val fetcher: PriceFet
                     val error = result.exceptionOrNull()
                     records[segment.id] = when {
                         fare != null -> {
-                            alerts += RouteMath.alertsFor(segment, before, fare, st.settings)
+                            alerts += RouteMath.alertsFor(segment, before, fare, st.settings, st.trip.passengers)
                             ok++
                             (before ?: SegmentRecord()).withFare(fare, now, segment.signature)
                         }
@@ -142,7 +142,8 @@ class BariRepository(private val context: Context, private val fetcher: PriceFet
                 val bestAfter = RouteMath.plan(st.trip, records).bestTotal
                 if (alerts.isNotEmpty() && bestAfter != null) {
                     val suffix = if (bestBefore != null && bestAfter < bestBefore) " (${Format.delta(bestAfter - bestBefore)})" else ""
-                    alerts += "💶 Pigiausia kelionė į abi puses: ${Format.euro(bestAfter)}$suffix"
+                    val who = if (st.trip.passengers > 1) " (${Format.passengers(st.trip.passengers)})" else ""
+                    alerts += "💶 Pigiausia kelionė į abi puses: ${Format.euro(bestAfter)}$who$suffix"
                 }
                 st.copy(records = records, lastRefresh = now)
             }

@@ -1,5 +1,6 @@
 package com.sparnai.bari.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -14,6 +15,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
@@ -21,6 +24,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -30,37 +37,76 @@ import com.sparnai.bari.core.AppState
 import com.sparnai.bari.core.Format
 import com.sparnai.bari.core.RouteMath
 import com.sparnai.bari.core.Segment
-import com.sparnai.bari.core.mode
+import com.sparnai.bari.core.TransportMode
 import com.sparnai.bari.core.title
 import com.sparnai.bari.ui.components.Pill
 import com.sparnai.bari.ui.components.PriceChart
 import com.sparnai.bari.ui.components.TrendPill
 import com.sparnai.bari.ui.theme.LocalPriceColors
 
+private val sections = listOf(
+    TransportMode.FLIGHT to "Skrydžiai",
+    TransportMode.TRAIN to "Traukiniai",
+    TransportMode.BUS to "Autobusai",
+)
+
+/** All tracked legs, grouped into flights, trains and buses. Prices are for all passengers. */
 @Composable
 fun FlightsScreen(state: AppState, onOpen: (String) -> Unit) {
-    val grouped = state.trip.segments
+    val pax = state.trip.passengers.coerceAtLeast(1)
+    val byMode = state.trip.segments
         .sortedWith(compareBy<Segment> { it.date }.thenBy { it.timeFrom ?: it.timeTo ?: "" })
-        .groupBy { it.date }
+        .groupBy { it.mode }
+    var collapsed by rememberSaveable { mutableStateOf(setOf<String>()) }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        if (grouped.isEmpty()) {
-            item { EmptyCard("Nėra stebimų bilietų. Paspauskite „+“, kad pridėtumėte.") }
+        if (state.trip.segments.isEmpty()) {
+            item { EmptyCard("Nėra stebimų reisų. Paspauskite „Pridėti“.") }
         }
-        grouped.forEach { (date, segments) ->
-            item(key = "h_$date") {
+        if (pax > 1) {
+            item(key = "pax") {
                 Text(
-                    RouteMath.parseDate(date)?.let { Format.dateLong(it) } ?: date,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 8.dp),
+                    "Kainos rodomos ${Format.passengers(pax)}",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            items(segments, key = { it.id }) { segment ->
-                SegmentCard(segment, state, onClick = { onOpen(segment.id) })
+        }
+        sections.forEach { (mode, title) ->
+            val list = byMode[mode].orEmpty()
+            if (list.isEmpty()) return@forEach
+            val open = mode.name !in collapsed
+            item(key = "h_${mode.name}") {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { collapsed = if (open) collapsed + mode.name else collapsed - mode.name }
+                        .padding(top = 8.dp, bottom = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(modeIcon(mode), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "$title (${list.size})",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Icon(
+                        if (open) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                        contentDescription = if (open) "Suskleisti" else "Išskleisti",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            if (open) {
+                items(list, key = { it.id }) { segment ->
+                    SegmentCard(segment, state, pax, onClick = { onOpen(segment.id) })
+                }
             }
         }
         item { Spacer(Modifier.height(88.dp)) }
@@ -68,7 +114,7 @@ fun FlightsScreen(state: AppState, onOpen: (String) -> Unit) {
 }
 
 @Composable
-private fun SegmentCard(segment: Segment, state: AppState, onClick: () -> Unit) {
+private fun SegmentCard(segment: Segment, state: AppState, pax: Int, onClick: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
     val record = state.records[segment.id]?.takeIf { it.signature == null || it.signature == segment.signature }
     val leg = RouteMath.leg(segment, record)
@@ -77,30 +123,26 @@ private fun SegmentCard(segment: Segment, state: AppState, onClick: () -> Unit) 
     Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    modeIcon(segment.mode),
-                    contentDescription = null,
-                    tint = scheme.primary,
-                    modifier = Modifier.size(20.dp),
-                )
-                Spacer(Modifier.width(8.dp))
                 Column(Modifier.weight(1f)) {
                     Text(segment.label, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     val flight = leg.fare?.flightNumber?.takeIf { it.isNotBlank() && it != segment.carrier }
                     val times = leg.departure?.let { "${Format.time(it)}–${Format.time(leg.arrival)}" }
                     val stops = leg.fare?.stops?.takeIf { it > 0 }?.let { "$it persėd." }
                     Text(
-                        listOfNotNull(leg.fare?.carrier ?: segment.carrier, flight, times, stops).joinToString(" · ")
-                            .ifBlank { "${segment.origin} → ${segment.dest}" },
+                        listOfNotNull(Format.dateShort(segment.date), leg.fare?.carrier ?: segment.carrier, flight, times, stops)
+                            .joinToString(" · "),
                         style = MaterialTheme.typography.bodySmall,
                         color = scheme.onSurfaceVariant,
-                        maxLines = 1,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(Format.euro(price), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    TrendPill(price, leg.previousPrice)
+                    Text(Format.total(price, pax), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    if (pax > 1 && price != null) {
+                        Text("${Format.euro(price)} / asm.", style = MaterialTheme.typography.labelSmall, color = scheme.onSurfaceVariant)
+                    }
+                    TrendPill(Format.times(price, pax), Format.times(leg.previousPrice, pax))
                 }
             }
             if (record != null && record.history.size >= 2) {
@@ -113,13 +155,13 @@ private fun SegmentCard(segment: Segment, state: AppState, onClick: () -> Unit) 
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Pill(segment.source.title, scheme.secondaryContainer, scheme.onSecondaryContainer)
                 if (record?.lowest != null) {
-                    Pill("Žemiausia ${Format.euro(record.lowest)}", scheme.surfaceContainerHighest, scheme.onSurfaceVariant)
+                    Pill("Žemiausia ${Format.total(record.lowest, pax)}", scheme.surfaceContainerHighest, scheme.onSurfaceVariant)
                 }
                 if (target != null) {
                     val reached = price != null && price <= target
                     val colors = LocalPriceColors.current
                     Pill(
-                        "Tikslas ${Format.euro(target)}",
+                        "Tikslas ${Format.total(target, pax)}",
                         if (reached) colors.downContainer else scheme.surfaceContainerHighest,
                         if (reached) colors.down else scheme.onSurfaceVariant,
                         Icons.Filled.Flag,

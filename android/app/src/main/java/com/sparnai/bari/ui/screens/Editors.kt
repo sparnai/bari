@@ -98,7 +98,16 @@ fun SegmentEditorDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (existing == null) "Naujas bilietas" else "Redaguoti bilietą") },
+        title = {
+            Text(
+                when {
+                    existing != null -> "Redaguoti"
+                    source.mode == TransportMode.TRAIN -> "Naujas traukinys"
+                    source.mode == TransportMode.BUS -> "Naujas autobusas"
+                    else -> "Naujas skrydis"
+                },
+            )
+        },
         text = {
             Column(
                 Modifier.heightIn(max = 560.dp).verticalScroll(rememberScrollState()),
@@ -202,7 +211,7 @@ fun SegmentEditorDialog(
                 OutlinedTextField(
                     value = target,
                     onValueChange = { target = it },
-                    label = { Text("Tikslinė kaina, € (pranešti, kai pasieks)") },
+                    label = { Text("Tikslinė kaina asmeniui, € (pranešti, kai pasieks)") },
                     isError = !targetOk,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -323,7 +332,7 @@ fun RouteEditorDialog(
                         FilterChip(selected = direction == value, onClick = { direction = value }, label = { Text(text) })
                     }
                 }
-                Text("Bilietai (eilės tvarka pagal datą)", style = MaterialTheme.typography.labelMedium)
+                Text("Skrydžiai, traukiniai, autobusai (eilės tvarka pagal datą)", style = MaterialTheme.typography.labelMedium)
                 ordered.forEach { seg ->
                     val checked = seg.id in selected
                     Row(

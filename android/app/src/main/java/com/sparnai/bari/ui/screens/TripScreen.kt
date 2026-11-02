@@ -186,7 +186,12 @@ private fun TripHero(state: AppState, plan: TripPlan, onPassengers: (Int) -> Uni
             Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.Bottom) {
                 Column(Modifier.weight(1f)) {
-                    Text("Pigiausia kelionė į abi puses", style = MaterialTheme.typography.labelMedium, color = scheme.onPrimary.copy(alpha = 0.85f))
+                    val pax = state.trip.passengers
+                    Text(
+                        "Pigiausia kelionė į abi puses" + if (pax > 1) " · ${Format.passengers(pax)}" else "",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = scheme.onPrimary.copy(alpha = 0.85f),
+                    )
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             Format.euro(plan.bestTotal),
@@ -292,7 +297,7 @@ private fun RouteCard(
             }
             if (summary.route.extraCostLabel != null) {
                 val text = if (summary.route.extraCost > 0) {
-                    "Įskaičiuota ${Format.euro(summary.route.extraCost)}: ${summary.route.extraCostLabel}"
+                    "Įskaičiuota ${Format.total(summary.route.extraCost, passengers)}: ${summary.route.extraCostLabel}"
                 } else {
                     "Neįskaičiuota: ${summary.route.extraCostLabel}"
                 }
@@ -300,7 +305,7 @@ private fun RouteCard(
             }
             HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.6f))
             summary.legs.forEachIndexed { index, leg ->
-                LegRow(leg, onClick = { onOpenSegment(leg.segment.id) })
+                LegRow(leg, passengers, onClick = { onOpenSegment(leg.segment.id) })
                 val layover = summary.layovers.getOrNull(index)
                 if (index < summary.legs.lastIndex && layover != null) {
                     Box(Modifier.padding(start = 36.dp)) { LayoverPill(layover) }
@@ -325,7 +330,7 @@ private fun RouteCard(
 }
 
 @Composable
-fun LegRow(leg: Leg, onClick: () -> Unit) {
+fun LegRow(leg: Leg, passengers: Int, onClick: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
     val seg = leg.segment
 
@@ -370,8 +375,8 @@ fun LegRow(leg: Leg, onClick: () -> Unit) {
             )
         }
         Column(horizontalAlignment = Alignment.End) {
-            Text(Format.euro(leg.price), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-            TrendPill(leg.price, leg.previousPrice)
+            Text(Format.total(leg.price, passengers), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+            TrendPill(Format.times(leg.price, passengers), Format.times(leg.previousPrice, passengers))
         }
     }
 }

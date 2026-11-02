@@ -51,6 +51,15 @@ object Format {
         return "$text$NBSP€"
     }
 
+    /** Per-person price × passengers (null stays null). */
+    fun times(perPerson: Double?, passengers: Int): Double? = perPerson?.let { round2(it * passengers.coerceAtLeast(1)) }
+
+    /** Price for all passengers, e.g. "251,98 €". */
+    fun total(perPerson: Double?, passengers: Int): String = euro(times(perPerson, passengers))
+
+    /** "1 keleiviui", "2 keleiviams" … */
+    fun passengers(n: Int): String = if (n == 1) "1 keleiviui" else "$n keleiviams"
+
     /** Signed difference, e.g. "−5 €" / "+12,50 €". */
     fun delta(value: Double): String {
         val sign = if (value < 0) "−" else "+"

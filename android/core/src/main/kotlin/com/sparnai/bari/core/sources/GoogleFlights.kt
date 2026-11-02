@@ -83,17 +83,24 @@ object GoogleFlightsQuery {
         "Accept-Language" to "en-US,en;q=0.9",
     )
 
-    fun searchUrl(segment: Segment): String {
+    /** Prices are always fetched for one adult; [adults] only changes the link opened for booking. */
+    fun searchUrl(segment: Segment, adults: Int = 1): String {
         val legs = buildList {
             add(Triple(segment.origin, segment.dest, segment.date))
             segment.returnDate?.let { add(Triple(segment.dest, segment.origin, it)) }
         }
-        val tfs = tfs(legs, segment.airlines, segment.maxStops, roundTrip = segment.returnDate != null)
+        val tfs = tfs(legs, segment.airlines, segment.maxStops, roundTrip = segment.returnDate != null, adults = adults)
         return "https://www.google.com/travel/flights?tfs=${URLEncoder.encode(tfs, "UTF-8")}&hl=en&curr=EUR"
     }
 
     /** Encodes the search as Google's `Info` protobuf message. */
-    fun tfs(legs: List<Triple<String, String, String>>, airlines: List<String>, maxStops: Int?, roundTrip: Boolean): String {
+    fun tfs(
+        legs: List<Triple<String, String, String>>,
+        airlines: List<String>,
+        maxStops: Int?,
+        roundTrip: Boolean,
+        adults: Int = 1,
+    ): String {
         val info = Proto().apply {
             for ((from, to, date) in legs) {
                 message(3) {
@@ -104,7 +111,7 @@ object GoogleFlightsQuery {
                     message(14) { string(2, to.uppercase(Locale.ROOT)) }
                 }
             }
-            int(8, 1) // passengers: one adult
+            repeat(adults.coerceIn(1, 9)) { int(8, 1) } // passengers: adults
             int(9, 1) // seat: economy
             int(19, if (roundTrip) 1 else 2) // trip: round trip / one way
         }

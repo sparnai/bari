@@ -20,7 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AirplaneTicket
-import androidx.compose.material.icons.filled.ConfirmationNumber
+import androidx.compose.material.icons.filled.Flight
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -137,8 +137,10 @@ private fun BariRoot(vm: MainViewModel) {
                     title = {
                         Column {
                             Text(
-                                when (tab) {
-                                    1 -> "Bilietai"
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                text = when (tab) {
+                                    1 -> "Skrydžiai, traukiniai, autobusai"
                                     2 -> "Nustatymai"
                                     else -> "Bari ✈"
                                 },
@@ -170,8 +172,8 @@ private fun BariRoot(vm: MainViewModel) {
                     NavigationBarItem(
                         selected = tab == 1,
                         onClick = { tab = 1 },
-                        icon = { Icon(Icons.Filled.ConfirmationNumber, contentDescription = null) },
-                        label = { Text("Bilietai") },
+                        icon = { Icon(Icons.Filled.Flight, contentDescription = null) },
+                        label = { Text("Skrydžiai") },
                     )
                     NavigationBarItem(
                         selected = tab == 2,
@@ -187,7 +189,7 @@ private fun BariRoot(vm: MainViewModel) {
                 ExtendedFloatingActionButton(
                     onClick = { editor = EditorRequest.EditSegment(null) },
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                    text = { Text("Bilietas") },
+                    text = { Text("Pridėti") },
                 )
             }
         },
@@ -280,7 +282,7 @@ private fun shareText(summary: RouteSummary, passengers: Int): String = buildStr
             .append(leg.segment.origin).append("→").append(leg.segment.dest)
         leg.fare?.flightNumber?.takeIf { it.isNotBlank() }?.let { append(" ").append(it) }
         if (leg.departure != null) append(" ").append(Format.time(leg.departure)).append("–").append(Format.time(leg.arrival))
-        append(" – ").append(Format.euro(leg.price)).append('\n')
+        append(" – ").append(Format.total(leg.price, passengers)).append('\n')
     }
     summary.route.note?.let { append(it).append('\n') }
     append("Stebima su Bari")

@@ -193,21 +193,31 @@ object RouteMath {
     }
 
     /** Notification lines for one segment after a successful check. */
-    fun alertsFor(segment: Segment, before: SegmentRecord?, fare: Fare, settings: AppSettings): List<String> {
+    /** Notification lines for one segment after a successful check; amounts are for all [passengers]. */
+    fun alertsFor(
+        segment: Segment,
+        before: SegmentRecord?,
+        fare: Fare,
+        settings: AppSettings,
+        passengers: Int = 1,
+    ): List<String> {
+        val pax = passengers.coerceAtLeast(1)
+        val who = if (pax > 1) " (${Format.passengers(pax)})" else ""
         val out = mutableListOf<String>()
         val usable = before?.takeIf { it.signature == null || it.signature == segment.signature }
         val old = usable?.fare?.price
         if (settings.notifyOnDrop && old != null) {
-            val drop = round2(old - fare.price)
+            val drop = round2((old - fare.price) * pax)
             if (drop > 0.0 && drop >= settings.minDropEuro) {
                 val lowest = usable?.lowest
                 val record = if (lowest != null && fare.price < lowest) " · žemiausia kada nors!" else ""
-                out += "📉 ${segment.label}: ${Format.euro(fare.price)} (buvo ${Format.euro(old)}, −${Format.euro(drop)})$record"
+                out += "📉 ${segment.label}: ${Format.total(fare.price, pax)}$who " +
+                    "(buvo ${Format.total(old, pax)}, −${Format.euro(drop)})$record"
             }
         }
         val target = segment.targetPrice
         if (settings.notifyOnTarget && target != null && fare.price <= target && (old == null || old > target)) {
-            out += "🎯 ${segment.label}: ${Format.euro(fare.price)} – pasiekta tikslinė kaina (${Format.euro(target)})"
+            out += "🎯 ${segment.label}: ${Format.total(fare.price, pax)}$who – pasiekta tikslinė kaina (${Format.total(target, pax)})"
         }
         return out
     }
@@ -220,10 +230,10 @@ object RouteMath {
     /** Where the user can see / book the fare. */
     fun bookingUrl(segment: Segment, fare: Fare?, passengers: Int = 1): String = when (segment.source) {
         FareSource.RYANAIR -> ryanairUrl(segment.origin, segment.dest, segment.date, passengers)
-        FareSource.GOOGLE -> fare?.url ?: GoogleFlightsQuery.searchUrl(segment)
+        FareSource.GOOGLE -> GoogleFlightsQuery.searchUrl(segment, passengers)
         FareSource.TRENITALIA -> fare?.url ?: "https://www.lefrecce.it/Channels.Website.WEB/"
-        FareSource.FLIXBUS -> fare?.url ?: "https://www.flixbus.com/"
-        FareSource.MANUAL -> GoogleFlightsQuery.searchUrl(segment)
+        FareSource.FLIXBUS -> fare?.url?.replace("adult=1", "adult=${passengers.coerceAtLeast(1)}") ?: "https://www.flixbus.com/"
+        FareSource.MANUAL -> GoogleFlightsQuery.searchUrl(segment, passengers)
     }
 
     fun newSegmentId(origin: String, dest: String, date: String, existing: Collection<String>): String {

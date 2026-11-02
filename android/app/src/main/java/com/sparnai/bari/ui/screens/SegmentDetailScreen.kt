@@ -71,6 +71,7 @@ fun SegmentDetailScreen(
     val record = state.records[segment.id]?.takeIf { it.signature == null || it.signature == segment.signature }
     val leg = RouteMath.leg(segment, record)
     val usedIn = state.trip.routes.filter { segment.id in it.segments }
+    val pax = state.trip.passengers.coerceAtLeast(1)
     var confirmDelete by remember { mutableStateOf(false) }
     var moveTo by remember { mutableStateOf<DayFare?>(null) }
 
@@ -94,13 +95,20 @@ fun SegmentDetailScreen(
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            Format.euro(leg.price),
+                            Format.total(leg.price, pax),
                             style = MaterialTheme.typography.displaySmall,
                             fontWeight = FontWeight.Bold,
                             color = scheme.onPrimaryContainer,
                         )
                         Spacer(Modifier.width(12.dp))
-                        TrendPill(leg.price, leg.previousPrice)
+                        TrendPill(Format.times(leg.price, pax), Format.times(leg.previousPrice, pax))
+                    }
+                    if (pax > 1 && leg.price != null) {
+                        Text(
+                            "${Format.passengers(pax).replaceFirstChar { it.uppercase() }} · ${Format.euro(leg.price)} / asm.",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = scheme.onPrimaryContainer,
+                        )
                     }
                     val flight = leg.fare?.flightNumber?.takeIf { it.isNotBlank() }
                     val times = leg.departure?.let { "${Format.time(it)} → ${Format.time(leg.arrival)}" }
@@ -173,9 +181,9 @@ fun SegmentDetailScreen(
                     PriceChart(record?.history.orEmpty(), Modifier.fillMaxWidth().height(160.dp))
                     val history = record?.history.orEmpty()
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Stat("Žemiausia", Format.euro(record?.lowest))
-                        Stat("Aukščiausia", Format.euro(record?.highest))
-                        Stat("Vidurkis", Format.euro(history.takeIf { it.isNotEmpty() }?.let { h -> round2(h.sumOf { it.p } / h.size) }))
+                        Stat("Žemiausia", Format.total(record?.lowest, pax))
+                        Stat("Aukščiausia", Format.total(record?.highest, pax))
+                        Stat("Vidurkis", Format.total(history.takeIf { it.isNotEmpty() }?.let { h -> round2(h.sumOf { it.p } / h.size) }, pax))
                         Stat("Patikrinta", "${history.size}×")
                     }
                     val target = segment.targetPrice
@@ -183,9 +191,9 @@ fun SegmentDetailScreen(
                         val price = leg.price
                         val colors = LocalPriceColors.current
                         val text = when {
-                            price == null -> "Tikslinė kaina ${Format.euro(target)}"
-                            price <= target -> "🎯 Tikslinė kaina ${Format.euro(target)} pasiekta!"
-                            else -> "Iki tikslinės kainos ${Format.euro(target)} trūksta ${Format.euro(round2(price - target))}"
+                            price == null -> "Tikslinė kaina ${Format.total(target, pax)}"
+                            price <= target -> "🎯 Tikslinė kaina ${Format.total(target, pax)} pasiekta!"
+                            else -> "Iki tikslinės kainos ${Format.total(target, pax)} trūksta ${Format.total(round2(price - target), pax)}"
                         }
                         Text(text, style = MaterialTheme.typography.bodyMedium, color = if (price != null && price <= target) colors.down else scheme.onSurface)
                     }
@@ -198,7 +206,7 @@ fun SegmentDetailScreen(
             item {
                 Column {
                     SectionTitle("Gretimos dienos (±3 d.)")
-                    FlexibleDates(segment, loadFlexible, onPick = { moveTo = it })
+                    FlexibleDates(segment, pax, loadFlexible, onPick = { moveTo = it })
                 }
             }
         }
@@ -230,7 +238,7 @@ fun SegmentDetailScreen(
             title = { Text("Stebėti kitą dieną?") },
             text = {
                 Text(
-                    "Perkelti „${segment.label}“ į ${Format.dateShort(day.day)} (${Format.euro(day.price)})? " +
+                    "Perkelti „${segment.label}“ į ${Format.dateShort(day.day)} (${Format.total(day.price, pax)})? " +
                         "Šio skrydžio kainų istorija prasidės iš naujo.",
                 )
             },
@@ -253,6 +261,7 @@ private fun Stat(label: String, value: String) {
 @Composable
 private fun FlexibleDates(
     segment: Segment,
+    pax: Int,
     load: suspend (Segment) -> Result<List<DayFare>>,
     onPick: (DayFare) -> Unit,
 ) {
@@ -307,7 +316,7 @@ private fun FlexibleDates(
                                 when {
                                     day.soldOut -> "išparduota"
                                     day.price == null -> "—"
-                                    else -> Format.euro(day.price)
+                                    else -> Format.total(day.price, pax)
                                 },
                                 style = MaterialTheme.typography.labelMedium,
                                 textAlign = TextAlign.Center,

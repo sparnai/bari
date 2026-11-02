@@ -35,6 +35,7 @@ Programėlė atskirai reitinguoja **nuvykimo** ir **grįžimo** variantus, o vir
 - Per Turiną – ryto persėdimas arba diena Turine (Ryanair)
 - Į Romą + traukinys (Trenitalia) arba + autobusas (FlixBus) į Barį
 - Per Varšuvą – LOT + Wizz Air / Ryanair
+- Autobusu į Varšuvą (FlixBus) + skrydis į Barį
 - Vienu bilietu – pigiausias Google Flights variantas (iki 12 val.)
 
 **Grįžimas (sausio 2–3 d.)**
@@ -42,9 +43,10 @@ Programėlė atskirai reitinguoja **nuvykimo** ir **grįžimo** variantus, o vir
 - Per Bergamą su nakvyne
 - Traukiniu arba autobusu į Romą + Ryanair iš Čiampino
 - Per Varšuvą
+- Skrydis į Varšuvą + naktinis autobusas namo (FlixBus)
 - Vienu bilietu (Google Flights)
 
-Variantus galima keisti programėlėje (skiltys „Bilietai“ ir „Kelionė“) arba faile
+Variantus galima keisti programėlėje (skiltys „Transportas“ ir „Kelionė“) arba faile
 [`config/trip.json`](config/trip.json): `segments` – stebimi bilietai (`source`: `ryanair`, `google`, `trenitalia`, `flixbus`),
 `routes` – jų deriniai (`direction`: `out` arba `back`). Atnaujinus programėlę, nepakeisti variantai atsinaujina automatiškai,
 o jūsų redaguoti ar pridėti – išlieka.

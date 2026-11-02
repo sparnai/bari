@@ -297,6 +297,7 @@ class CoreTest {
         assertTrue(cheapRound.roundTripWins)
         assertEquals("Roma Termini", Format.city("Roma Termini"))
         assertEquals("Viena", Format.city("vie"))
+        assertEquals("Varšuva", Format.city("Warsaw"))
     }
 
     @Test

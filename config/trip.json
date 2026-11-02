@@ -105,7 +105,8 @@
       "date": "2026-12-26",
       "source": "flixbus",
       "carrier": "FlixBus",
-      "timeTo": "07:30"
+      "timeTo": "08:00",
+      "timeFrom": "06:00"
     },
     {
       "id": "VNO_WAW",

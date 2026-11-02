@@ -37,6 +37,9 @@ object Format {
         "ARN" to "Stokholmas", "NYO" to "Stokholmas (Skavsta)", "OSL" to "Oslas", "HEL" to "Helsinkis",
         "TLV" to "Tel Avivas", "AMS" to "Amsterdamas", "EIN" to "Eindhovenas", "CGN" to "Kelnas", "HHN" to "Hanas",
         "NUE" to "Niurnbergas", "MMX" to "Malmė", "CIY" to "Komizas",
+        // City names used by bus and train searches
+        "WARSAW" to "Varšuva", "ROME" to "Roma", "BARI" to "Baris", "VILNIUS" to "Vilnius", "KAUNAS" to "Kaunas",
+        "RIGA" to "Ryga", "NAPLES" to "Neapolis", "MILAN" to "Milanas", "VIENNA" to "Viena", "TURIN" to "Turinas",
     )
 
     /** City name for an IATA code; station / city names (trains, buses) are returned as they are. */

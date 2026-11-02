@@ -129,7 +129,7 @@ fun SegmentDetailScreen(
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 Button(
-                    onClick = { uri.openUri(RouteMath.bookingUrl(segment, state.trip.passengers)) },
+                    onClick = { uri.openUri(RouteMath.bookingUrl(segment, leg.fare, state.trip.passengers)) },
                     modifier = Modifier.weight(1f),
                 ) {
                     Icon(Icons.Filled.OpenInNew, contentDescription = null)

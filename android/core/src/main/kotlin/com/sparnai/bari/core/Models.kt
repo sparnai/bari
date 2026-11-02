@@ -4,7 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-/** Shared JSON configuration (same format as config/trip.json used by the cloud tracker). */
+/** Shared JSON configuration (same format as config/trip.json). */
 val BariJson = Json {
     ignoreUnknownKeys = true
     encodeDefaults = true
@@ -13,20 +13,54 @@ val BariJson = Json {
     isLenient = true
 }
 
+/** Where the price of a segment comes from. Every source is checked automatically. */
 @Serializable
 enum class FareSource {
+    /** Ryanair public fare finder API. */
     @SerialName("ryanair")
     RYANAIR,
 
+    /** Google Flights results page – any airline (Lufthansa, Wizz Air, LOT, Austrian, ITA, airBaltic…). */
+    @SerialName("google")
+    GOOGLE,
+
+    /** Trenitalia (lefrecce.it) – Italian trains, e.g. Bari ↔ Roma. */
+    @SerialName("trenitalia")
+    TRENITALIA,
+
+    /** FlixBus public search API – buses. */
+    @SerialName("flixbus")
+    FLIXBUS,
+
+    /** Legacy fixed price; no longer offered in the app. */
     @SerialName("manual")
     MANUAL,
 }
 
-/** One leg that is tracked. Ryanair legs are checked automatically, manual legs hold a typed-in price. */
+enum class TransportMode { FLIGHT, TRAIN, BUS }
+
+val FareSource.mode: TransportMode
+    get() = when (this) {
+        FareSource.TRENITALIA -> TransportMode.TRAIN
+        FareSource.FLIXBUS -> TransportMode.BUS
+        else -> TransportMode.FLIGHT
+    }
+
+val FareSource.title: String
+    get() = when (this) {
+        FareSource.RYANAIR -> "Ryanair"
+        FareSource.GOOGLE -> "Google Flights"
+        FareSource.TRENITALIA -> "Trenitalia"
+        FareSource.FLIXBUS -> "FlixBus"
+        FareSource.MANUAL -> "Fiksuota kaina"
+    }
+
+/** One leg that is tracked. */
 @Serializable
 data class Segment(
     val id: String,
     val label: String,
+    /** IATA code for flights, station name for trains (e.g. "Roma Termini"), city name for buses. */
     val origin: String,
     val dest: String,
     /** yyyy-MM-dd */
@@ -39,7 +73,13 @@ data class Segment(
     val timeTo: String? = null,
     /** Notify when the price falls to this value or lower. */
     val targetPrice: Double? = null,
-    // Manual legs
+    /** Google Flights: only these airlines (IATA codes, e.g. ["OS"], ["LO", "W6"]). Empty = any airline. */
+    val airlines: List<String> = emptyList(),
+    /** Google Flights: maximum number of stops (0 = nonstop). Null = any. */
+    val maxStops: Int? = null,
+    /** Google Flights: return date for a round-trip ticket (price is the round-trip total). */
+    val returnDate: String? = null,
+    // Legacy manual legs
     val price: Double? = null,
     val flight: String? = null,
     /** HH:mm */
@@ -48,17 +88,37 @@ data class Segment(
     val arrival: String? = null,
 ) {
     val isManual: Boolean get() = source == FareSource.MANUAL
+    val mode: TransportMode get() = source.mode
 
     /** Changes to these fields mean the tracked fare is a different product, so history restarts. */
-    val signature: String get() = "$origin-$dest-$date-$timeFrom-$timeTo-$source"
+    val signature: String
+        get() = listOf(origin, dest, date, timeFrom, timeTo, source, airlines.joinToString(","), maxStops, returnDate)
+            .joinToString("-")
 }
 
+@Serializable
+enum class Direction {
+    /** Vilnius → destination */
+    @SerialName("out")
+    OUT,
+
+    /** Destination → Vilnius */
+    @SerialName("back")
+    BACK,
+
+    /** One ticket covering both directions. */
+    @SerialName("round")
+    ROUND,
+}
+
+/** A journey = ordered legs in one direction (or a round-trip ticket). */
 @Serializable
 data class RouteOption(
     val id: String,
     val name: String,
     val segments: List<String>,
-    /** Extra cost for the whole group (hotel, transfer...). */
+    val direction: Direction = Direction.ROUND,
+    /** Extra cost per person (airport transfer, …). */
     val extraCost: Double = 0.0,
     val extraCostLabel: String? = null,
     val note: String? = null,
@@ -77,11 +137,16 @@ data class TripConfig(
 data class Fare(
     val price: Double,
     val currency: String = "EUR",
+    /** Flight / train number(s), e.g. "FR8365", "Frecciarossa 9352". */
     val flightNumber: String = "",
-    /** Local time at the departure airport, ISO yyyy-MM-ddTHH:mm[:ss] */
+    /** Local time at the departure point, ISO yyyy-MM-ddTHH:mm[:ss] */
     val departure: String? = null,
-    /** Local time at the arrival airport. */
+    /** Local time at the arrival point. */
     val arrival: String? = null,
+    val carrier: String? = null,
+    val stops: Int? = null,
+    /** Page where this fare can be booked / seen. */
+    val url: String? = null,
 )
 
 @Serializable
@@ -112,7 +177,7 @@ data class AppSettings(
 
 @Serializable
 data class AppState(
-    val version: Int = 1,
+    val version: Int = 2,
     val trip: TripConfig = TripConfig(),
     val records: Map<String, SegmentRecord> = emptyMap(),
     val settings: AppSettings = AppSettings(),

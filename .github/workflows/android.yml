@@ -57,7 +57,7 @@ jobs:
           echo "BARI_KEYSTORE_FILE=$RUNNER_TEMP/bari-release.jks" >> "$GITHUB_ENV"
 
       - name: Unit tests
-        run: ./gradlew --no-daemon --stacktrace testDebugUnitTest
+        run: ./gradlew --no-daemon --stacktrace :core:test
 
       - name: Build release APK
         env:
@@ -82,6 +82,7 @@ jobs:
           path: android/dist/Bari.apk
 
       - name: Publish GitHub release
+        if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}

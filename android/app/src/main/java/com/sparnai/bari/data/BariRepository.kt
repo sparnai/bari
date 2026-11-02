@@ -15,6 +15,10 @@ import com.sparnai.bari.core.TripConfig
 import com.sparnai.bari.core.TripMerge
 import com.sparnai.bari.core.withError
 import com.sparnai.bari.core.withFare
+import com.sparnai.bari.core.FareSource
+import com.sparnai.bari.core.sources.ApiException
+import com.sparnai.bari.core.sources.PriceFetcher
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -38,7 +42,7 @@ data class RefreshOutcome(
 )
 
 /** Single source of truth: trip configuration, price records and settings, persisted as JSON. */
-class BariRepository(private val context: Context, private val api: RyanairApi = RyanairApi()) {
+class BariRepository(private val context: Context, private val fetcher: PriceFetcher = PriceFetcher()) {
     private val file = File(context.filesDir, "bari_state.json")
     private val mutex = Mutex()
 
@@ -90,10 +94,18 @@ class BariRepository(private val context: Context, private val api: RyanairApi =
         try {
             val snapshot = _state.value
             val toCheck = snapshot.trip.segments.filter { !it.isManual }
-            val gate = Semaphore(3)
+            // Google Flights is a web page, not an API: ask one page at a time, politely.
+            val apiGate = Semaphore(3)
+            val pageGate = Semaphore(1)
             val results: List<Pair<Segment, Result<Fare?>>> = coroutineScope {
                 toCheck.map { segment ->
-                    async { gate.withPermit { segment to runCatching { api.cheapestFare(segment) } } }
+                    async {
+                        val gate = if (segment.source == FareSource.GOOGLE) pageGate else apiGate
+                        gate.withPermit {
+                            if (segment.source == FareSource.GOOGLE) delay(800)
+                            segment to runCatching { fetcher.fetch(segment) }
+                        }
+                    }
                 }.awaitAll()
             }
             val now = System.currentTimeMillis()
@@ -144,7 +156,7 @@ class BariRepository(private val context: Context, private val api: RyanairApi =
         val from = date.minusDays(days)
         val to = date.plusDays(days)
         val months = listOf(YearMonth.from(from), YearMonth.from(to)).distinct()
-        return months.flatMap { api.cheapestPerDay(segment.origin, segment.dest, it) }
+        return months.flatMap { fetcher.ryanair.cheapestPerDay(segment.origin, segment.dest, it) }
             .filter { day -> RouteMath.parseDate(day.day)?.let { !it.isBefore(from) && !it.isAfter(to) } == true }
             .distinctBy { it.day }
             .sortedBy { it.day }

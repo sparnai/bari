@@ -29,9 +29,19 @@ object Format {
         "CIA" to "Roma (Čiampinas)", "FCO" to "Roma (Fiumičinas)", "NAP" to "Neapolis", "FRA" to "Frankfurtas",
         "MUC" to "Miunchenas", "BER" to "Berlynas", "KRK" to "Krokuva", "BLQ" to "Bolonija", "PSA" to "Piza",
         "VCE" to "Venecija", "TSF" to "Trevisas", "BUD" to "Budapeštas", "PRG" to "Praha",
+        "WRO" to "Vroclavas", "GDN" to "Gdanskas", "POZ" to "Poznanė", "KTW" to "Katovicai", "BTS" to "Bratislava",
+        "CRL" to "Briuselis (Šarleroja)", "BVA" to "Paryžius (Bovė)", "STN" to "Londonas (Stanstedas)",
+        "DUB" to "Dublinas", "MLA" to "Malta", "ATH" to "Atėnai", "BCN" to "Barselona", "MAD" to "Madridas",
+        "SUF" to "Lamecija", "PSR" to "Peskara", "CTA" to "Katanija", "PMO" to "Palermas", "CAG" to "Kaljaris",
+        "TRS" to "Triestas", "GOA" to "Genuja", "VRN" to "Verona", "AOI" to "Ankona", "CPH" to "Kopenhaga",
+        "ARN" to "Stokholmas", "NYO" to "Stokholmas (Skavsta)", "OSL" to "Oslas", "HEL" to "Helsinkis",
+        "TLV" to "Tel Avivas", "AMS" to "Amsterdamas", "EIN" to "Eindhovenas", "CGN" to "Kelnas", "HHN" to "Hanas",
+        "NUE" to "Niurnbergas", "MMX" to "Malmė", "CIY" to "Komizas",
     )
 
-    fun city(iata: String): String = cities[iata.uppercase()] ?: iata.uppercase()
+    /** City name for an IATA code; station / city names (trains, buses) are returned as they are. */
+    fun city(code: String): String =
+        cities[code.uppercase()] ?: if (code.length == 3 && code.all { it.isLetter() }) code.uppercase() else code
 
     fun euro(value: Double?): String {
         if (value == null) return "—"

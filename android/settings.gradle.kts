@@ -21,4 +21,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "Bari"
-include(":app")
+include(":app", ":core")

@@ -4,6 +4,7 @@ import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import com.sparnai.bari.core.sources.GoogleFlightsQuery
 import java.time.format.DateTimeFormatter
 
 /**
@@ -52,6 +53,19 @@ data class RouteSummary(
         }
     }
 }
+
+data class TripPlan(
+    val outbound: List<RouteSummary>,
+    val back: List<RouteSummary>,
+    val round: List<RouteSummary>,
+    val bestOut: RouteSummary?,
+    val bestBack: RouteSummary?,
+    val bestRound: RouteSummary?,
+    /** Cheapest whole trip: best outbound + best return, or a round-trip ticket if cheaper. */
+    val bestTotal: Double?,
+    val previousBestTotal: Double?,
+    val roundTripWins: Boolean,
+)
 
 object RouteMath {
     private val isoMinute: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")
@@ -131,15 +145,15 @@ object RouteMath {
         }
         val pax = trip.passengers.coerceAtLeast(1)
         val complete = missing.isEmpty() && legs.isNotEmpty()
-        val perPerson = if (complete) round2(legs.sumOf { it.price ?: 0.0 }) else null
-        val previous = if (complete) round2(legs.sumOf { it.previousPrice ?: it.price ?: 0.0 }) else null
+        val perPerson = if (complete) round2(legs.sumOf { it.price ?: 0.0 } + route.extraCost) else null
+        val previous = if (complete) round2(legs.sumOf { it.previousPrice ?: it.price ?: 0.0 } + route.extraCost) else null
         return RouteSummary(
             route = route,
             legs = legs,
             layovers = legs.zipWithNext { a, b -> layover(a, b) },
             perPerson = perPerson,
-            total = perPerson?.let { round2(it * pax + route.extraCost) },
-            previousTotal = previous?.let { round2(it * pax + route.extraCost) },
+            total = perPerson?.let { round2(it * pax) },
+            previousTotal = previous?.let { round2(it * pax) },
             missing = missing,
         )
     }
@@ -148,6 +162,35 @@ object RouteMath {
     fun summarizeAll(trip: TripConfig, records: Map<String, SegmentRecord>): List<RouteSummary> =
         trip.routes.map { summarize(it, trip, records) }
             .sortedWith(compareBy<RouteSummary> { it.total == null }.thenBy { it.total ?: 0.0 })
+
+    /** Ranks outbound, return and round-trip journeys and finds the cheapest whole trip. */
+    fun plan(trip: TripConfig, records: Map<String, SegmentRecord>): TripPlan {
+        val all = summarizeAll(trip, records)
+        val out = all.filter { it.route.direction == Direction.OUT }
+        val back = all.filter { it.route.direction == Direction.BACK }
+        val round = all.filter { it.route.direction == Direction.ROUND }
+        val bestOut = out.firstOrNull { it.total != null }
+        val bestBack = back.firstOrNull { it.total != null }
+        val bestRound = round.firstOrNull { it.total != null }
+        val combo = if (bestOut?.total != null && bestBack?.total != null) round2(bestOut.total + bestBack.total) else null
+        val comboPrev = if (bestOut?.previousTotal != null && bestBack?.previousTotal != null) {
+            round2(bestOut.previousTotal + bestBack.previousTotal)
+        } else {
+            null
+        }
+        val roundWins = bestRound?.total != null && (combo == null || bestRound.total < combo)
+        return TripPlan(
+            outbound = out,
+            back = back,
+            round = round,
+            bestOut = bestOut,
+            bestBack = bestBack,
+            bestRound = bestRound,
+            bestTotal = if (roundWins) bestRound?.total else combo,
+            previousBestTotal = if (roundWins) bestRound?.previousTotal else comboPrev,
+            roundTripWins = roundWins,
+        )
+    }
 
     /** Notification lines for one segment after a successful check. */
     fun alertsFor(segment: Segment, before: SegmentRecord?, fare: Fare, settings: AppSettings): List<String> {
@@ -169,18 +212,23 @@ object RouteMath {
         return out
     }
 
-    /** Ryanair booking page for a segment, or a Google Flights search for other carriers. */
-    fun bookingUrl(segment: Segment, passengers: Int = 1): String =
-        if (!segment.isManual) {
-            "https://www.ryanair.com/gb/en/trip/flights/select?adults=${passengers.coerceAtLeast(1)}" +
-                "&teens=0&children=0&infants=0&dateOut=${segment.date}&isConnectedFlight=false" +
-                "&isReturn=false&discount=0&originIata=${segment.origin}&destinationIata=${segment.dest}"
-        } else {
-            "https://www.google.com/travel/flights?q=Flights%20from%20${segment.origin}%20to%20${segment.dest}%20on%20${segment.date}"
-        }
+    fun ryanairUrl(origin: String, dest: String, date: String, adults: Int = 1): String =
+        "https://www.ryanair.com/gb/en/trip/flights/select?adults=${adults.coerceAtLeast(1)}" +
+            "&teens=0&children=0&infants=0&dateOut=$date&isConnectedFlight=false" +
+            "&isReturn=false&discount=0&originIata=$origin&destinationIata=$dest"
+
+    /** Where the user can see / book the fare. */
+    fun bookingUrl(segment: Segment, fare: Fare?, passengers: Int = 1): String = when (segment.source) {
+        FareSource.RYANAIR -> ryanairUrl(segment.origin, segment.dest, segment.date, passengers)
+        FareSource.GOOGLE -> fare?.url ?: GoogleFlightsQuery.searchUrl(segment)
+        FareSource.TRENITALIA -> fare?.url ?: "https://www.lefrecce.it/Channels.Website.WEB/"
+        FareSource.FLIXBUS -> fare?.url ?: "https://www.flixbus.com/"
+        FareSource.MANUAL -> GoogleFlightsQuery.searchUrl(segment)
+    }
 
     fun newSegmentId(origin: String, dest: String, date: String, existing: Collection<String>): String {
-        val base = "${origin}_${dest}_${date.replace("-", "")}".uppercase()
+        fun code(s: String) = s.uppercase().replace(Regex("[^A-Z0-9]+"), "").take(6).ifBlank { "X" }
+        val base = "${code(origin)}_${code(dest)}_${date.replace("-", "")}"
         if (base !in existing) return base
         var i = 2
         while ("${base}_$i" in existing) i++

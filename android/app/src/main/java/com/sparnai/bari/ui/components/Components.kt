@@ -40,6 +40,7 @@ import com.sparnai.bari.core.Format
 import com.sparnai.bari.core.Layover
 import com.sparnai.bari.core.LayoverLevel
 import com.sparnai.bari.core.PricePoint
+import com.sparnai.bari.core.Transfer
 import com.sparnai.bari.ui.theme.LocalPriceColors
 
 /** Small rounded label with an icon. */
@@ -82,7 +83,13 @@ fun LayoverPill(layover: Layover, modifier: Modifier = Modifier) {
     val scheme = MaterialTheme.colorScheme
     val where = Format.city(layover.at)
     val time = Format.duration(layover.minutes)
-    val change = if (layover.airportChange) " · kitas oro uostas" else ""
+    val change = when (layover.transfer) {
+        Transfer.NONE -> ""
+        Transfer.AIRPORT_CHANGE -> " · kitas oro uostas"
+        Transfer.TO_AIRPORT -> " · reikia nuvykti į oro uostą"
+        Transfer.TO_STATION -> " · reikia nuvykti į stotį"
+        Transfer.STATION_CHANGE -> " · kita stotis"
+    }
     when (layover.level) {
         LayoverLevel.OK -> Pill("Persėdimas $where · $time$change", scheme.surfaceContainerHigh, scheme.onSurfaceVariant, Icons.Filled.CheckCircle, modifier)
         LayoverLevel.TIGHT -> Pill("Trumpas persėdimas $where · $time$change", colors.warnContainer, colors.warn, Icons.Filled.Schedule, modifier)

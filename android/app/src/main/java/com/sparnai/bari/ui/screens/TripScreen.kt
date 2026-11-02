@@ -60,6 +60,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sparnai.bari.core.AppState
+import com.sparnai.bari.core.Direction
 import com.sparnai.bari.core.Format
 import com.sparnai.bari.core.Leg
 import com.sparnai.bari.core.RouteMath
@@ -114,7 +115,7 @@ fun TripScreen(
         if (state.trip.routes.isEmpty()) {
             item {
                 Text(
-                    "Dar nėra maršrutų. Pridėkite bilietus skiltyje „Bilietai“ ir sujunkite juos į maršrutą.",
+                    "Dar nėra maršrutų. Pridėkite reisus skiltyje „Transportas“ ir sujunkite juos į maršrutą.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
@@ -161,88 +162,78 @@ private fun SectionHeader(title: String, subtitle: String?, count: Int, open: Bo
 @Composable
 private fun TripHero(state: AppState, plan: TripPlan, onPassengers: (Int) -> Unit) {
     val scheme = MaterialTheme.colorScheme
+    val pax = state.trip.passengers
     val dates = state.trip.segments.mapNotNull { RouteMath.parseDate(it.date) }
     val start = dates.minOrNull()
     val end = dates.maxOrNull()
+    val onHero = scheme.onPrimary
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                Brush.linearGradient(listOf(scheme.primary, scheme.tertiary)),
-                RoundedCornerShape(28.dp),
-            )
+            .background(Brush.linearGradient(listOf(scheme.primary, scheme.tertiary)), RoundedCornerShape(28.dp))
             .padding(20.dp),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(state.trip.name, style = MaterialTheme.typography.headlineSmall, color = scheme.onPrimary, fontWeight = FontWeight.Bold)
+            Text(state.trip.name, style = MaterialTheme.typography.headlineSmall, color = onHero, fontWeight = FontWeight.Bold)
             if (start != null && end != null) {
-                Text(
-                    "${Format.dateShort(start)} – ${Format.dateShort(end)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = scheme.onPrimary.copy(alpha = 0.9f),
-                )
-                Text(Format.countdown(start), style = MaterialTheme.typography.labelLarge, color = scheme.onPrimary)
+                Text("${Format.dateShort(start)} – ${Format.dateShort(end)}", style = MaterialTheme.typography.bodyMedium, color = onHero.copy(alpha = 0.9f))
+                Text(Format.countdown(start), style = MaterialTheme.typography.labelLarge, color = onHero)
             }
             Spacer(Modifier.height(6.dp))
-            Row(verticalAlignment = Alignment.Bottom) {
-                Column(Modifier.weight(1f)) {
-                    val pax = state.trip.passengers
-                    Text(
-                        "Pigiausia kelionė į abi puses" + if (pax > 1) " · ${Format.passengers(pax)}" else "",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = scheme.onPrimary.copy(alpha = 0.85f),
-                    )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            Format.euro(plan.bestTotal),
-                            style = MaterialTheme.typography.displaySmall,
-                            color = scheme.onPrimary,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        TrendPill(plan.bestTotal, plan.previousBestTotal)
-                    }
-                    val lines = when {
-                        plan.bestTotal == null -> listOf("Laukiama kainų…")
-                        plan.roundTripWins -> listOf("🎫 ${plan.bestRound?.route?.name}")
-                        else -> listOf(
-                            "→ ${plan.bestOut?.route?.name} · ${Format.euro(plan.bestOut?.total)}",
-                            "← ${plan.bestBack?.route?.name} · ${Format.euro(plan.bestBack?.total)}",
-                        )
-                    }
-                    lines.forEach {
-                        Text(
-                            it,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = scheme.onPrimary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
+            Text(
+                "Visa kelionė (nuvykimas + grįžimas), ${Format.passengers(pax)}",
+                style = MaterialTheme.typography.labelMedium,
+                color = onHero.copy(alpha = 0.85f),
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(Format.euro(plan.bestTotal), style = MaterialTheme.typography.displaySmall, color = onHero, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.width(8.dp))
+                TrendPill(plan.bestTotal, plan.previousBestTotal)
+            }
+            val bestTotal = plan.bestTotal
+            if (pax > 1 && bestTotal != null) {
+                Text("${Format.euro(bestTotal / pax)} / asm.", style = MaterialTheme.typography.labelMedium, color = onHero.copy(alpha = 0.85f))
+            }
+            when {
+                plan.bestTotal == null -> Text("Laukiama kainų…", style = MaterialTheme.typography.bodyMedium, color = onHero)
+                plan.roundTripWins -> HeroLine("⇄", "Į abi puses", plan.bestRound)
+                else -> {
+                    HeroLine("→", "Nuvykimas", plan.bestOut)
+                    HeroLine("←", "Grįžimas", plan.bestBack)
                 }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        FilledTonalIconButton(
-                            onClick = { onPassengers(state.trip.passengers - 1) },
-                            enabled = state.trip.passengers > 1,
-                            modifier = Modifier.size(32.dp),
-                        ) { Icon(Icons.Filled.Remove, contentDescription = "Mažiau keleivių", modifier = Modifier.size(16.dp)) }
-                        Row(Modifier.padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.Group, contentDescription = null, tint = scheme.onPrimary, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("${state.trip.passengers}", color = scheme.onPrimary, style = MaterialTheme.typography.titleMedium)
-                        }
-                        FilledTonalIconButton(
-                            onClick = { onPassengers(state.trip.passengers + 1) },
-                            enabled = state.trip.passengers < 9,
-                            modifier = Modifier.size(32.dp),
-                        ) { Icon(Icons.Filled.Add, contentDescription = "Daugiau keleivių", modifier = Modifier.size(16.dp)) }
-                    }
-                    Text("keleiviai", style = MaterialTheme.typography.labelSmall, color = scheme.onPrimary.copy(alpha = 0.85f))
-                }
+            }
+            Spacer(Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Group, contentDescription = null, tint = onHero, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Keleiviai", style = MaterialTheme.typography.labelLarge, color = onHero, modifier = Modifier.weight(1f))
+                FilledTonalIconButton(
+                    onClick = { onPassengers(pax - 1) },
+                    enabled = pax > 1,
+                    modifier = Modifier.size(36.dp),
+                ) { Icon(Icons.Filled.Remove, contentDescription = "Mažiau keleivių", modifier = Modifier.size(18.dp)) }
+                Text("$pax", color = onHero, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = 14.dp))
+                FilledTonalIconButton(
+                    onClick = { onPassengers(pax + 1) },
+                    enabled = pax < 9,
+                    modifier = Modifier.size(36.dp),
+                ) { Icon(Icons.Filled.Add, contentDescription = "Daugiau keleivių", modifier = Modifier.size(18.dp)) }
             }
         }
     }
+}
+
+/** "→ Nuvykimas: Iš Kauno per Bergamą – 381,82 €" (wraps instead of being cut off). */
+@Composable
+private fun HeroLine(arrow: String, what: String, summary: RouteSummary?) {
+    if (summary == null) return
+    Text(
+        "$arrow $what: ${summary.route.name} – ${Format.euro(summary.total)}",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onPrimary,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+    )
 }
 
 @Composable
@@ -270,7 +261,12 @@ private fun RouteCard(
             Row(verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f)) {
                     if (best) {
-                        Pill("Pigiausias", scheme.secondary, scheme.onSecondary, Icons.Filled.EmojiEvents)
+                        val badge = when (summary.route.direction) {
+                            Direction.OUT -> "Pigiausias nuvykimas"
+                            Direction.BACK -> "Pigiausias grįžimas"
+                            Direction.ROUND -> "Pigiausias bilietas į abi puses"
+                        }
+                        Pill(badge, scheme.secondary, scheme.onSecondary, Icons.Filled.EmojiEvents)
                         Spacer(Modifier.height(6.dp))
                     }
                     Text(summary.route.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)

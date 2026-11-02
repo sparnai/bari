@@ -104,6 +104,38 @@ jobs:
           ls -la dist
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
+      # Android only installs an update when it is signed with the same certificate as the installed app.
+      # Compare with the published releases and refuse to publish an APK that phones could not install.
+      - name: Check signature against published releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          IS_MAIN: ${{ github.ref == 'refs/heads/main' }}
+        run: |
+          TOOLS="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+          cert() { "$TOOLS/apksigner" verify --print-certs "$1" | grep -m1 'certificate SHA-256 digest' | awk '{print $NF}'; }
+          "$TOOLS/aapt2" dump badging dist/Bari.apk | head -1
+          NEW="$(cert dist/Bari.apk)"
+          echo "NEW APK certificate: $NEW"
+          for tag in $(gh release list --limit 6 --json tagName --jq '.[].tagName'); do
+            mkdir -p "$RUNNER_TEMP/prev/$tag"
+            if gh release download "$tag" --pattern Bari.apk --dir "$RUNNER_TEMP/prev/$tag" --clobber; then
+              echo "$tag certificate: $(cert "$RUNNER_TEMP/prev/$tag/Bari.apk")"
+            fi
+          done
+          LATEST="$(gh release view --json tagName --jq .tagName 2>/dev/null || true)"
+          if [ -n "$LATEST" ] && [ -f "$RUNNER_TEMP/prev/$LATEST/Bari.apk" ]; then
+            OLD="$(cert "$RUNNER_TEMP/prev/$LATEST/Bari.apk")"
+            if [ "$OLD" = "$NEW" ]; then
+              echo "OK: same certificate as $LATEST – installs over it."
+            elif [ "$IS_MAIN" = "true" ]; then
+              echo "::error::Signing certificate differs from $LATEST – phones could not update. Not publishing."
+              exit 1
+            else
+              echo "::warning::Signing certificate differs from $LATEST."
+            fi
+          fi
+
       - uses: actions/upload-artifact@v4
         with:
           name: Bari-${{ steps.apk.outputs.version }}

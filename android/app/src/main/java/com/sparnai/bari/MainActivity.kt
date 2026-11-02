@@ -20,7 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AirplaneTicket
-import androidx.compose.material.icons.filled.Flight
+import androidx.compose.material.icons.filled.Commute
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -140,7 +140,7 @@ private fun BariRoot(vm: MainViewModel) {
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 text = when (tab) {
-                                    1 -> "Skrydžiai, traukiniai, autobusai"
+                                    1 -> "Transportas"
                                     2 -> "Nustatymai"
                                     else -> "Bari ✈"
                                 },
@@ -172,8 +172,8 @@ private fun BariRoot(vm: MainViewModel) {
                     NavigationBarItem(
                         selected = tab == 1,
                         onClick = { tab = 1 },
-                        icon = { Icon(Icons.Filled.Flight, contentDescription = null) },
-                        label = { Text("Skrydžiai") },
+                        icon = { Icon(Icons.Filled.Commute, contentDescription = null) },
+                        label = { Text("Transportas") },
                     )
                     NavigationBarItem(
                         selected = tab == 2,

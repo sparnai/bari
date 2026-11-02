@@ -45,23 +45,34 @@ class FlixBus(private val http: Http) {
         return match.first
     }
 
-    suspend fun cheapest(segment: Segment): Fare? {
+    /** Every available ride on the segment's day. */
+    suspend fun options(segment: Segment): List<BusOption> {
         val from = cityId(segment.origin)
         val to = cityId(segment.dest)
-        val date = RouteMath.parseDate(segment.date) ?: return null
-        val url = "$base/search/service/v4/search".toHttpUrl().newBuilder()
+        val date = RouteMath.parseDate(segment.date) ?: return emptyList()
+        return FlixBusParser.parseSearch(http.get(searchUrl(from, to, date.format(dmy))))
+    }
+
+    private fun searchUrl(from: String, to: String, day: String): String =
+        "$base/search/service/v4/search".toHttpUrl().newBuilder()
             .addQueryParameter("from_city_id", from)
             .addQueryParameter("to_city_id", to)
-            .addQueryParameter("departure_date", date.format(dmy))
+            .addQueryParameter("departure_date", day)
             .addQueryParameter("products", "{\"adult\":1}")
             .addQueryParameter("currency", "EUR")
             .addQueryParameter("locale", "en")
             .addQueryParameter("search_by", "cities")
             .addQueryParameter("include_after_midnight_rides", "1")
-            .build()
+            .build().toString()
+
+    suspend fun cheapest(segment: Segment): Fare? {
+        val from = cityId(segment.origin)
+        val to = cityId(segment.dest)
+        val date = RouteMath.parseDate(segment.date) ?: return null
+        val url = searchUrl(from, to, date.format(dmy))
         val fromTime = RouteMath.parseTime(segment.timeFrom)
         val toTime = RouteMath.parseTime(segment.timeTo)
-        val best = FlixBusParser.parseSearch(http.get(url.toString()))
+        val best = FlixBusParser.parseSearch(http.get(url))
             .filter { o ->
                 val dep = RouteMath.parseLocal(o.departure) ?: return@filter false
                 val t = dep.toLocalTime()

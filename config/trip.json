@@ -98,6 +98,16 @@
       "timeFrom": "11:00"
     },
     {
+      "id": "VNO_WAW_BUS",
+      "label": "Autobusas Vilnius → Varšuva",
+      "origin": "Vilnius",
+      "dest": "Warsaw",
+      "date": "2026-12-26",
+      "source": "flixbus",
+      "carrier": "FlixBus",
+      "timeTo": "07:30"
+    },
+    {
       "id": "VNO_WAW",
       "label": "Vilnius → Varšuva (LOT)",
       "origin": "VNO",
@@ -255,6 +265,16 @@
       "timeFrom": "15:00"
     },
     {
+      "id": "WAW_VNO_BUS",
+      "label": "Autobusas Varšuva → Vilnius",
+      "origin": "Warsaw",
+      "dest": "Vilnius",
+      "date": "2027-01-03",
+      "source": "flixbus",
+      "carrier": "FlixBus",
+      "timeFrom": "19:30"
+    },
+    {
       "id": "BRI_VNO_ONE",
       "label": "Baris → Vilnius vienu bilietu",
       "origin": "BRI",
@@ -330,6 +350,16 @@
         "WAW_BRI"
       ],
       "note": "LOT LO772 į Varšuvą, tada tiesioginis Wizz Air / Ryanair į Barį (kainą randa Google Flights)."
+    },
+    {
+      "id": "o_waw_bus",
+      "name": "Autobusu į Varšuvą + skrydis",
+      "direction": "out",
+      "segments": [
+        "VNO_WAW_BUS",
+        "WAW_BRI"
+      ],
+      "note": "FlixBus į Varšuvą, iš autobusų stoties į Šopeno oro uostą ~30–40 min., tada tiesioginis skrydis į Barį."
     },
     {
       "id": "o_ticket",
@@ -413,6 +443,16 @@
         "BRI_WAW",
         "WAW_VNO"
       ]
+    },
+    {
+      "id": "b_waw_bus",
+      "name": "Skrydis į Varšuvą + autobusu namo",
+      "direction": "back",
+      "segments": [
+        "BRI_WAW",
+        "WAW_VNO_BUS"
+      ],
+      "note": "Tiesioginis skrydis į Varšuvą, tada naktinis FlixBus į Vilnių (atvykstama kitą rytą)."
     },
     {
       "id": "b_ticket",

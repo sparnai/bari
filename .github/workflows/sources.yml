@@ -33,6 +33,16 @@ jobs:
         continue-on-error: true
         run: ./gradlew --no-daemon -q :core:run --args="discover"
 
+      - name: Warsaw options (bus + flights)
+        continue-on-error: true
+        run: |
+          ./gradlew --no-daemon -q :core:run --args="bus Vilnius Warsaw 2026-12-26"
+          ./gradlew --no-daemon -q :core:run --args="bus Vilnius Warsaw 2026-12-25"
+          ./gradlew --no-daemon -q :core:run --args="bus Warsaw Vilnius 2027-01-03"
+          ./gradlew --no-daemon -q :core:run --args="ryanair WMI BRI 2026-12-26"
+          ./gradlew --no-daemon -q :core:run --args="ryanair WAW BRI 2026-12-26"
+          ./gradlew --no-daemon -q :core:run --args="ryanair BRI WMI 2027-01-03"
+
       - name: Google Flights page sample
         continue-on-error: true
         run: |

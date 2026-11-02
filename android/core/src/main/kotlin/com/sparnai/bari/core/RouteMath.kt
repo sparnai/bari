@@ -13,12 +13,16 @@ import java.time.format.DateTimeFormatter
  */
 enum class LayoverLevel { OK, TIGHT, RISKY, IMPOSSIBLE, LONG, OVERNIGHT, STAY }
 
+/** What the traveller has to do between two legs. */
+enum class Transfer { NONE, AIRPORT_CHANGE, TO_AIRPORT, TO_STATION, STATION_CHANGE }
+
 data class Layover(
     val minutes: Long,
     val level: LayoverLevel,
-    /** Arrival and next departure are at different airports (e.g. train station → CIA). */
+    /** Arrival and next departure are at different places (e.g. bus station → airport). */
     val airportChange: Boolean,
     val at: String,
+    val transfer: Transfer = Transfer.NONE,
 )
 
 data class Leg(
@@ -126,7 +130,14 @@ object RouteMath {
             minutes >= 5 * 60 -> LayoverLevel.LONG
             else -> LayoverLevel.OK
         }
-        return Layover(minutes, level, !sameAirport, next.segment.origin)
+        val transfer = when {
+            sameAirport -> Transfer.NONE
+            prev.segment.mode != TransportMode.FLIGHT && next.segment.mode == TransportMode.FLIGHT -> Transfer.TO_AIRPORT
+            prev.segment.mode == TransportMode.FLIGHT && next.segment.mode != TransportMode.FLIGHT -> Transfer.TO_STATION
+            next.segment.mode == TransportMode.FLIGHT -> Transfer.AIRPORT_CHANGE
+            else -> Transfer.STATION_CHANGE
+        }
+        return Layover(minutes, level, !sameAirport, next.segment.origin, transfer)
     }
 
     fun summarize(route: RouteOption, trip: TripConfig, records: Map<String, SegmentRecord>): RouteSummary {

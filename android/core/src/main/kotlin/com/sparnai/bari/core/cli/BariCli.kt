@@ -33,6 +33,8 @@ fun main(args: Array<String>) = runBlocking {
         "check" -> check(fetcher, File(args.getOrElse(1) { "config/trip.json" }))
         "discover" -> discover(fetcher, args.drop(1))
         "google" -> google(fetcher, args[1], args[2], args[3], args.getOrNull(4))
+        "bus" -> bus(fetcher, args[1], args[2], args[3])
+        "ryanair" -> ryanair(fetcher, args[1], args[2], args[3])
         else -> println("Usage: check [trip.json] | discover | google FROM TO DATE")
     }
 }
@@ -136,4 +138,21 @@ private suspend fun google(fetcher: PriceFetcher, from: String, to: String, date
     if (labels.isEmpty()) {
         println("Snippet: " + html.take(1500).replace("\n", " "))
     }
+}
+
+/** All FlixBus departures for a day (to pick time windows). */
+private suspend fun bus(fetcher: PriceFetcher, from: String, to: String, date: String) {
+    println("== FlixBus $from → $to, $date ==")
+    runCatching { fetcher.flixbus.options(Segment(id = "b", label = "b", origin = from, dest = to, date = date, source = FareSource.FLIXBUS)) }
+        .onFailure { println("  ${it.message}") }
+        .getOrNull()?.sortedBy { it.departure }?.forEach {
+            println("  ${it.departure?.drop(11)?.take(5)} → ${it.arrival?.take(16)?.replace('T', ' ')}  ${Format.euro(it.price)}  persėd.: ${it.transfers}")
+        }
+}
+
+/** Ryanair cheapest fare for a route and day. */
+private suspend fun ryanair(fetcher: PriceFetcher, from: String, to: String, date: String) {
+    val seg = Segment(id = "r", label = "r", origin = from, dest = to, date = date)
+    val fare = runCatching { fetcher.ryanair.cheapestFare(seg) }
+    println("== Ryanair $from → $to, $date: ${fare.getOrNull()?.let { fareText(it) } ?: fare.exceptionOrNull()?.message ?: "nėra skrydžių"}")
 }

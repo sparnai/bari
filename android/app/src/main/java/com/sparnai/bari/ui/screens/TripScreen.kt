@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DirectionsBus
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -86,11 +87,15 @@ fun TripScreen(
     onEditRoute: (RouteOption?) -> Unit,
     onDeleteRoute: (String) -> Unit,
     onToggleExcluded: (String) -> Unit,
+    onModeIncluded: (TransportMode, Boolean) -> Unit,
     onShare: (RouteSummary) -> Unit,
 ) {
     val scope = state.settings.priceScope
     val excluded = state.settings.excludedRoutes
-    val plan = remember(state.trip, state.records, scope, excluded) { RouteMath.plan(state.trip, state.records, scope, excluded) }
+    val allowed = state.settings.allowedModes
+    val plan = remember(state.trip, state.records, scope, excluded, allowed) {
+        RouteMath.plan(state.trip, state.records, scope, excluded, allowed)
+    }
     val bestIds = listOfNotNull(plan.bestOut, plan.bestBack, plan.bestRound).map { it.route.id }.toSet()
     var confirmDelete by remember { mutableStateOf<RouteOption?>(null) }
     var collapsed by rememberSaveable { mutableStateOf(setOf<String>()) }
@@ -126,6 +131,7 @@ fun TripScreen(
     ) {
         item(key = "hero") { TripHero(state, plan, onPassengers) }
         item(key = "scope") { ScopeToggle(scope, onPriceScope) }
+        item(key = "modes") { ModeToggle(state.settings.includeBuses, state.settings.includeTrains, onModeIncluded) }
         if (state.trip.routes.isEmpty()) {
             item {
                 Text(
@@ -135,8 +141,11 @@ fun TripScreen(
             }
         }
         section("out", "Nuvykimas į Barį", outDate?.let { Format.dateShort(it) }, plan.outbound)
+        hiddenNote("out", plan.hidden.filter { it.route.direction == Direction.OUT }, allowed)
         section("back", "Grįžimas į Vilnių", backDate?.let { Format.dateShort(it) }, plan.back)
+        hiddenNote("back", plan.hidden.filter { it.route.direction == Direction.BACK }, allowed)
         section("round", "Bilietas į abi puses", null, plan.round)
+        hiddenNote("round", plan.hidden.filter { it.route.direction == Direction.ROUND }, allowed)
         item(key = "add") {
             OutlinedButton(onClick = { onEditRoute(null) }, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Filled.Add, contentDescription = null)
@@ -250,6 +259,44 @@ private fun TripHero(state: AppState, plan: TripPlan, onPassengers: (Int) -> Uni
                 ) { Icon(Icons.Filled.Add, contentDescription = "Daugiau keleivių", modifier = Modifier.size(18.dp)) }
             }
         }
+    }
+}
+
+/** "Paslėpta 3 variantai su autobusais" under a section. */
+private fun LazyListScope.hiddenNote(key: String, hidden: List<RouteSummary>, allowed: Set<TransportMode>) {
+    if (hidden.isEmpty()) return
+    val modes = hidden.flatMap { r -> r.legs.map { it.segment.mode } }.filter { it !in allowed }.toSet()
+    val what = listOfNotNull(
+        "autobusais".takeIf { TransportMode.BUS in modes },
+        "traukiniais".takeIf { TransportMode.TRAIN in modes },
+    ).joinToString(" ir ")
+    item(key = "hidden_$key") {
+        Text(
+            "Paslėpta variantų su $what: ${hidden.size} (įjunkite viršuje „Įtraukti“)",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/** Which ground transport may be part of the plan. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ModeToggle(buses: Boolean, trains: Boolean, onChange: (TransportMode, Boolean) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text("Įtraukti:", style = MaterialTheme.typography.labelLarge)
+        FilterChip(
+            selected = buses,
+            onClick = { onChange(TransportMode.BUS, !buses) },
+            label = { Text("Autobusai") },
+            leadingIcon = { Icon(if (buses) Icons.Filled.Check else Icons.Filled.DirectionsBus, contentDescription = null, modifier = Modifier.size(18.dp)) },
+        )
+        FilterChip(
+            selected = trains,
+            onClick = { onChange(TransportMode.TRAIN, !trains) },
+            label = { Text("Traukiniai") },
+            leadingIcon = { Icon(if (trains) Icons.Filled.Check else Icons.Filled.Train, contentDescription = null, modifier = Modifier.size(18.dp)) },
+        )
     }
 }
 

@@ -57,6 +57,9 @@ Kelionės ekrane galima perjungti, ką skaičiuoti: **Pilna kaina** – skrydži
 ir oro uostų; **Tik skrydžiai** – tik lėktuvų bilietai (kitos atkarpos rodomos pilkai). Pagal pasirinkimą perskaičiuojamas ir
 variantų reitingas. Nakvynė ir bagažas neįskaičiuojami nė viename režime.
 
+Eilutėje **„Įtraukti: Autobusai / Traukiniai“** galima išjungti autobusus ar traukinius: tada variantai, kuriuose jie yra,
+neįtraukiami į palyginimą ir pigiausios kelionės skaičiavimą, o jų kainos netikrinamos ir apie jas nepranešama.
+
 ## Pranešimai
 
 Programėlė fone tikrina kainas (kas 3/6/12/24 val., nustatymuose) ir telefone parodo pranešimą, kai:

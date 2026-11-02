@@ -90,7 +90,7 @@ fun FlightsScreen(state: AppState, onOpen: (String) -> Unit) {
                     Icon(modeIcon(mode), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        "$title (${list.size})",
+                        "$title (${list.size})" + if (mode !in state.settings.allowedModes) " · neįtraukta" else "",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.SemiBold,

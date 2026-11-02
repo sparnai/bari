@@ -233,6 +233,7 @@ private fun BariRoot(vm: MainViewModel) {
                     onEditRoute = { editor = EditorRequest.EditRoute(it) },
                     onDeleteRoute = vm::deleteRoute,
                     onToggleExcluded = vm::toggleRouteExcluded,
+                    onModeIncluded = vm::setModeIncluded,
                     onShare = { summary ->
                         val text = shareText(summary, state.trip.passengers)
                         val send = Intent(Intent.ACTION_SEND).apply {

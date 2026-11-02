@@ -74,6 +74,8 @@ data class TripPlan(
     val bestTotal: Double?,
     val previousBestTotal: Double?,
     val roundTripWins: Boolean,
+    /** Journeys left out because they use a transport mode that is switched off (buses, trains). */
+    val hidden: List<RouteSummary> = emptyList(),
 )
 
 object RouteMath {
@@ -198,9 +200,12 @@ object RouteMath {
         records: Map<String, SegmentRecord>,
         scope: PriceScope = PriceScope.FULL,
         excluded: Collection<String> = emptyList(),
+        allowedModes: Set<TransportMode> = TransportMode.entries.toSet(),
     ): TripPlan {
         val skip = excluded.toSet()
-        val all = summarizeAll(trip, records, scope)
+        val (usable, hidden) = summarizeAll(trip, records, scope)
+            .partition { summary -> summary.legs.all { it.segment.mode in allowedModes } }
+        val all = usable
             .map { if (it.route.id in skip) it.copy(excluded = true) else it }
             .sortedWith(compareBy<RouteSummary> { it.excluded }.thenBy { it.total == null }.thenBy { it.total ?: 0.0 })
         val out = all.filter { it.route.direction == Direction.OUT }
@@ -226,6 +231,7 @@ object RouteMath {
             bestTotal = if (roundWins) bestRound?.total else combo,
             previousBestTotal = if (roundWins) bestRound?.previousTotal else comboPrev,
             roundTripWins = roundWins,
+            hidden = hidden,
         )
     }
 

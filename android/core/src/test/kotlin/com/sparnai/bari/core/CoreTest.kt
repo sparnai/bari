@@ -370,6 +370,32 @@ class CoreTest {
     }
 
     @Test
+    fun switchedOffModesHideJourneys() {
+        val bus = Segment("BUS", "Autobusas", "Vilnius", "Warsaw", "2026-12-26", source = FareSource.FLIXBUS)
+        val train = Segment("TR", "Traukinys", "Roma Termini", "Bari Centrale", "2026-12-26", source = FareSource.TRENITALIA)
+        val trip = TripConfig(
+            segments = listOf(bus, seg("F", "WAW", "BRI"), seg("R", "VNO", "FCO"), train, seg("T", "VNO", "BRI")),
+            routes = listOf(
+                RouteOption("bus", "Autobusu", listOf("BUS", "F"), direction = Direction.OUT),
+                RouteOption("train", "Traukiniu", listOf("R", "TR"), direction = Direction.OUT),
+                RouteOption("fly", "Skrydžiu", listOf("T"), direction = Direction.OUT),
+            ),
+        )
+        val records = mapOf(
+            "BUS" to SegmentRecord(fare = Fare(30.0)), "F" to SegmentRecord(fare = Fare(131.0)),
+            "R" to SegmentRecord(fare = Fare(150.0)), "TR" to SegmentRecord(fare = Fare(18.0)),
+            "T" to SegmentRecord(fare = Fare(200.0)),
+        )
+        assertEquals("bus", RouteMath.plan(trip, records).bestOut!!.route.id)
+        val noBus = RouteMath.plan(trip, records, allowedModes = AppSettings(includeBuses = false).allowedModes)
+        assertEquals(listOf("train", "fly"), noBus.outbound.map { it.route.id })
+        assertEquals(listOf("bus"), noBus.hidden.map { it.route.id })
+        val flightsOnly = RouteMath.plan(trip, records, allowedModes = AppSettings(includeBuses = false, includeTrains = false).allowedModes)
+        assertEquals("fly", flightsOnly.bestOut!!.route.id)
+        assertEquals(2, flightsOnly.hidden.size)
+    }
+
+    @Test
     fun stateRoundTrip() {
         val state = AppState(
             trip = TripConfig(segments = listOf(seg("A", "VNO", "TRN"))),

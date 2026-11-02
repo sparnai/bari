@@ -95,7 +95,9 @@ class BariRepository(private val context: Context, private val fetcher: PriceFet
         }
         try {
             val snapshot = _state.value
-            val toCheck = snapshot.trip.segments.filter { !it.isManual }
+            // Buses / trains that are switched off are not checked (and do not notify).
+            val allowed = snapshot.settings.allowedModes
+            val toCheck = snapshot.trip.segments.filter { !it.isManual && it.mode in allowed }
             // Google Flights is a web page, not an API: ask one page at a time, politely.
             val apiGate = Semaphore(3)
             val pageGate = Semaphore(1)
@@ -115,7 +117,9 @@ class BariRepository(private val context: Context, private val fetcher: PriceFet
             var ok = 0
             var failed = 0
             update { st ->
-                val bestBefore = RouteMath.plan(st.trip, st.records, st.settings.priceScope, st.settings.excludedRoutes).bestTotal
+                val bestBefore = RouteMath.plan(
+                    st.trip, st.records, st.settings.priceScope, st.settings.excludedRoutes, st.settings.allowedModes,
+                ).bestTotal
                 val records = st.records.toMutableMap()
                 for ((segment, result) in results) {
                     // The segment may have been edited or removed while we were waiting for the network.
@@ -140,7 +144,9 @@ class BariRepository(private val context: Context, private val fetcher: PriceFet
                         }
                     }
                 }
-                val bestAfter = RouteMath.plan(st.trip, records, st.settings.priceScope, st.settings.excludedRoutes).bestTotal
+                val bestAfter = RouteMath.plan(
+                    st.trip, records, st.settings.priceScope, st.settings.excludedRoutes, st.settings.allowedModes,
+                ).bestTotal
                 if (alerts.isNotEmpty() && bestAfter != null) {
                     val suffix = if (bestBefore != null && bestAfter < bestBefore) " (${Format.delta(bestAfter - bestBefore)})" else ""
                     val who = if (st.trip.passengers > 1) " (${Format.passengers(st.trip.passengers)})" else ""

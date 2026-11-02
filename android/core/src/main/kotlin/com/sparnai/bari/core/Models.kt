@@ -190,7 +190,18 @@ data class AppSettings(
     val priceScope: PriceScope = PriceScope.FULL,
     /** Route ids left out of the "cheapest trip" comparison (still listed, greyed out). */
     val excludedRoutes: List<String> = emptyList(),
-)
+    /** Plan with buses / trains. When off, journeys using them are left out and their prices are not checked. */
+    val includeBuses: Boolean = true,
+    val includeTrains: Boolean = true,
+) {
+    /** Transport modes the trip may use (flights are always allowed). */
+    val allowedModes: Set<TransportMode>
+        get() = buildSet {
+            add(TransportMode.FLIGHT)
+            if (includeBuses) add(TransportMode.BUS)
+            if (includeTrains) add(TransportMode.TRAIN)
+        }
+}
 
 @Serializable
 data class AppState(

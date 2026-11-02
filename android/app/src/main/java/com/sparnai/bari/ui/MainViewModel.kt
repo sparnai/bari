@@ -10,6 +10,7 @@ import com.sparnai.bari.core.DayFare
 import com.sparnai.bari.core.PriceScope
 import com.sparnai.bari.core.RouteOption
 import com.sparnai.bari.core.Segment
+import com.sparnai.bari.core.TransportMode
 import com.sparnai.bari.work.PriceCheckWorker
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -111,6 +112,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val settings = state.value.settings
         val excluded = if (id in settings.excludedRoutes) settings.excludedRoutes - id else settings.excludedRoutes + id
         updateSettings(settings.copy(excludedRoutes = excluded))
+    }
+
+    /** Include or leave out buses / trains in trip planning. Switching one back on checks its prices right away. */
+    fun setModeIncluded(mode: TransportMode, include: Boolean) {
+        val settings = state.value.settings
+        val updated = when (mode) {
+            TransportMode.BUS -> settings.copy(includeBuses = include)
+            TransportMode.TRAIN -> settings.copy(includeTrains = include)
+            TransportMode.FLIGHT -> settings
+        }
+        if (updated == settings) return
+        viewModelScope.launch {
+            updateSettings(updated)
+            if (include) refresh()
+        }
     }
 
     fun restoreMissingDefaults() {

@@ -4,6 +4,7 @@ import com.sparnai.bari.core.Fare
 import com.sparnai.bari.core.RouteMath
 import com.sparnai.bari.core.Segment
 import com.sparnai.bari.core.round2
+import kotlinx.coroutines.delay
 import java.io.ByteArrayOutputStream
 import java.net.URLEncoder
 import java.time.LocalDate
@@ -35,12 +36,17 @@ class GoogleFlights(private val http: Http) {
 
     suspend fun cheapest(segment: Segment): Fare? {
         val url = GoogleFlightsQuery.searchUrl(segment)
-        val html = http.get(url, headers = GoogleFlightsQuery.HEADERS)
-        val all = GoogleFlightsParser.parse(html, RouteMath.parseDate(segment.date) ?: LocalDate.now())
-        if (all.isEmpty()) {
+        val searchDate = RouteMath.parseDate(segment.date) ?: LocalDate.now()
+        var all = emptyList<GoogleFlight>()
+        // Google sometimes serves a page variant without the result list – ask once more before giving up.
+        for (attempt in 0 until 2) {
+            if (attempt > 0) delay(2500)
+            val html = http.get(url, headers = GoogleFlightsQuery.HEADERS)
+            all = GoogleFlightsParser.parse(html, searchDate)
+            if (all.isNotEmpty()) break
             GoogleFlightsParser.problem(html)?.let { throw ApiException(it) }
-            return null
         }
+        if (all.isEmpty()) return null
         val from = RouteMath.parseTime(segment.timeFrom)
         val to = RouteMath.parseTime(segment.timeTo)
         val matching = all.filter { f ->

@@ -198,7 +198,6 @@ fun SegmentEditorDialog(
                             FilterChip(selected = maxHours == value, onClick = { maxHours = value }, label = { Text(text) })
                         }
                     }
-                    DateField(returnDate, { returnDate = it }, "Grįžimo data – bilietas į abi puses (nebūtina)", parsedReturn, optional = true)
                 }
                 OutlinedTextField(
                     value = target,
@@ -320,7 +319,7 @@ fun RouteEditorDialog(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(Direction.OUT to "Nuvykimas", Direction.BACK to "Grįžimas", Direction.ROUND to "Į abi puses").forEach { (value, text) ->
+                    listOf(Direction.OUT to "Nuvykimas", Direction.BACK to "Grįžimas").forEach { (value, text) ->
                         FilterChip(selected = direction == value, onClick = { direction = value }, label = { Text(text) })
                     }
                 }

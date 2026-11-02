@@ -11,8 +11,8 @@
       "date": "2026-12-26",
       "source": "flixbus",
       "carrier": "FlixBus",
-      "timeFrom": "08:00",
-      "timeTo": "12:30"
+      "timeFrom": "11:00",
+      "timeTo": "13:00"
     },
     {
       "id": "KUN_BGY",
@@ -263,17 +263,6 @@
       "source": "google",
       "maxStops": 2,
       "maxHours": 12
-    },
-    {
-      "id": "VNO_BRI_RT",
-      "label": "Vilnius ⇄ Baris (bilietas į abi puses)",
-      "origin": "VNO",
-      "dest": "BRI",
-      "date": "2026-12-26",
-      "source": "google",
-      "returnDate": "2027-01-03",
-      "maxStops": 2,
-      "maxHours": 12
     }
   ],
   "routes": [
@@ -433,15 +422,6 @@
         "BRI_VNO_ONE"
       ],
       "note": "Pigiausias vieno bilieto variantas iki 12 val. kelionės (LOT, Lufthansa, ITA, airBaltic…). Bagažas perkeliamas automatiškai, praleidus jungtį – perkels į kitą reisą."
-    },
-    {
-      "id": "r_ticket",
-      "name": "Bilietas į abi puses (Google Flights)",
-      "direction": "round",
-      "segments": [
-        "VNO_BRI_RT"
-      ],
-      "note": "Vienas bilietas Vilnius ⇄ Baris. Kaina – už abi kryptis."
     }
   ]
 }

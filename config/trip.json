@@ -1,0 +1,237 @@
+{
+  "name": "Kalėdos Baryje",
+  "currency": "EUR",
+  "passengers": 1,
+  "segments": [
+    {
+      "id": "VNO_TRN",
+      "label": "Vilnius → Turinas",
+      "origin": "VNO",
+      "dest": "TRN",
+      "date": "2026-12-26",
+      "source": "ryanair",
+      "carrier": "Ryanair",
+      "targetPrice": 110
+    },
+    {
+      "id": "TRN_BRI",
+      "label": "Turinas → Baris (rytas)",
+      "origin": "TRN",
+      "dest": "BRI",
+      "date": "2026-12-26",
+      "source": "ryanair",
+      "carrier": "Ryanair",
+      "timeFrom": "10:00",
+      "targetPrice": 80,
+      "timeTo": "13:00"
+    },
+    {
+      "id": "TRN_BRI_EVE",
+      "label": "Turinas → Baris (vakaras)",
+      "origin": "TRN",
+      "dest": "BRI",
+      "date": "2026-12-26",
+      "source": "ryanair",
+      "carrier": "Ryanair",
+      "timeFrom": "17:00",
+      "targetPrice": 75
+    },
+    {
+      "id": "BRI_VIE",
+      "label": "Baris → Viena (rytas)",
+      "origin": "BRI",
+      "dest": "VIE",
+      "date": "2027-01-03",
+      "source": "ryanair",
+      "carrier": "Ryanair",
+      "timeTo": "10:30",
+      "targetPrice": 75
+    },
+    {
+      "id": "VIE_VNO",
+      "label": "Viena → Vilnius",
+      "origin": "VIE",
+      "dest": "VNO",
+      "date": "2027-01-03",
+      "source": "ryanair",
+      "carrier": "Ryanair",
+      "timeFrom": "11:30",
+      "targetPrice": 90
+    },
+    {
+      "id": "BRI_BGY",
+      "label": "Baris → Bergamas",
+      "origin": "BRI",
+      "dest": "BGY",
+      "date": "2027-01-02",
+      "source": "ryanair",
+      "carrier": "Ryanair",
+      "timeFrom": "17:00",
+      "targetPrice": 70
+    },
+    {
+      "id": "BGY_VNO",
+      "label": "Bergamas → Vilnius",
+      "origin": "BGY",
+      "dest": "VNO",
+      "date": "2027-01-03",
+      "source": "ryanair",
+      "carrier": "Ryanair",
+      "timeTo": "09:00",
+      "targetPrice": 130
+    },
+    {
+      "id": "BRI_VIE_SAT",
+      "label": "Baris → Viena (šeštadienio vakaras)",
+      "origin": "BRI",
+      "dest": "VIE",
+      "date": "2027-01-02",
+      "source": "ryanair",
+      "carrier": "Ryanair",
+      "timeFrom": "14:00"
+    },
+    {
+      "id": "VIE_VNO_OS",
+      "label": "Viena → Vilnius (Austrian)",
+      "origin": "VIE",
+      "dest": "VNO",
+      "date": "2027-01-03",
+      "source": "manual",
+      "carrier": "Austrian Airlines",
+      "price": 103,
+      "flight": "OS917",
+      "departure": "10:00",
+      "arrival": "12:45"
+    },
+    {
+      "id": "VNO_WAW_LO",
+      "label": "Vilnius → Varšuva (LOT)",
+      "origin": "VNO",
+      "dest": "WAW",
+      "date": "2026-12-26",
+      "source": "manual",
+      "carrier": "LOT",
+      "price": 117,
+      "flight": "LO772",
+      "departure": "14:40",
+      "arrival": "14:45"
+    },
+    {
+      "id": "WAW_BRI_W6",
+      "label": "Varšuva → Baris (Wizz Air)",
+      "origin": "WAW",
+      "dest": "BRI",
+      "date": "2026-12-26",
+      "source": "manual",
+      "carrier": "Wizz Air",
+      "price": 132,
+      "flight": "W61339",
+      "departure": "18:10",
+      "arrival": "20:20"
+    },
+    {
+      "id": "BRI_ROM_TRAIN",
+      "label": "Traukinys Baris → Roma",
+      "origin": "BRI",
+      "dest": "ROM",
+      "date": "2027-01-03",
+      "source": "manual",
+      "carrier": "Trenitalia",
+      "price": 45,
+      "flight": "Frecciarossa",
+      "departure": "06:50",
+      "arrival": "11:30"
+    },
+    {
+      "id": "CIA_VNO",
+      "label": "Roma (Čiampinas) → Vilnius",
+      "origin": "CIA",
+      "dest": "VNO",
+      "date": "2027-01-03",
+      "source": "ryanair",
+      "carrier": "Ryanair",
+      "timeFrom": "13:00",
+      "targetPrice": 180
+    },
+    {
+      "id": "VNO_BRI_LH",
+      "label": "Vilnius ⇄ Baris (Lufthansa + ITA, vienas bilietas)",
+      "origin": "VNO",
+      "dest": "BRI",
+      "date": "2026-12-26",
+      "source": "manual",
+      "carrier": "Lufthansa / ITA Airways",
+      "price": 449,
+      "flight": "per FRA ir FCO",
+      "departure": "16:00",
+      "arrival": "23:00"
+    }
+  ],
+  "routes": [
+    {
+      "id": "trn_vie",
+      "name": "Per Turiną ir Vieną",
+      "segments": [
+        "VNO_TRN",
+        "TRN_BRI",
+        "BRI_VIE",
+        "VIE_VNO"
+      ],
+      "note": "Greičiausias: ryte persėdimas Turine (~1 val. 45 min.), atgal per Vieną. Vienoje persėdimui lieka apie 80 min., todėl tinka tik su rankiniu bagažu."
+    },
+    {
+      "id": "trn_day_vie",
+      "name": "Diena Turine, atgal per Vieną",
+      "segments": [
+        "VNO_TRN",
+        "TRN_BRI_EVE",
+        "BRI_VIE",
+        "VIE_VNO"
+      ],
+      "note": "Turine praleidžiate dieną ir į Barį išskrendate vakariniu reisu (FR264) – dažnai pigiau nei ryto persėdimas."
+    },
+    {
+      "id": "trn_bgy",
+      "name": "Per Turiną ir Bergamą",
+      "segments": [
+        "VNO_TRN",
+        "TRN_BRI",
+        "BRI_BGY",
+        "BGY_VNO"
+      ],
+      "extraCostLabel": "nakvynė prie Bergamo oro uosto",
+      "note": "Ankstyviausias grįžimas: išvakarėse skrendama į Bergamą, pernakvojama ir sekmadienį ryte būsite Vilniuje."
+    },
+    {
+      "id": "trn_vie_night",
+      "name": "Per Vieną su nakvyne",
+      "segments": [
+        "VNO_TRN",
+        "TRN_BRI",
+        "BRI_VIE_SAT",
+        "VIE_VNO_OS"
+      ],
+      "extraCostLabel": "nakvynė Vienoje",
+      "note": "Saugiausias grįžimas be skubaus persėdimo: šeštadienio vakaras Vienoje, sekmadienį Austrian OS917 namo."
+    },
+    {
+      "id": "waw_rom",
+      "name": "Per Varšuvą ir Romą",
+      "segments": [
+        "VNO_WAW_LO",
+        "WAW_BRI_W6",
+        "BRI_ROM_TRAIN",
+        "CIA_VNO"
+      ],
+      "note": "Nuvykimas per Varšuvą, atgal greituoju traukiniu į Romą ir Ryanair iš Čiampino. Iš Roma Termini iki Čiampino – autobusu."
+    },
+    {
+      "id": "lh_ita",
+      "name": "Vienas bilietas (Lufthansa + ITA)",
+      "segments": [
+        "VNO_BRI_LH"
+      ],
+      "note": "Bendra rezervacija: apsauga nuo vėlavimų žiemą, bagažas perkeliamas automatiškai. Kaina įvesta rankiniu būdu."
+    }
+  ]
+}

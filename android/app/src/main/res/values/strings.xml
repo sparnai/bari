@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Bari</string>
+    <string name="channel_name">Kainų pokyčiai</string>
+    <string name="channel_description">Pranešimai, kai skrydžio kaina nukrenta arba pasiekia tikslinę kainą</string>
+</resources>

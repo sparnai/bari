@@ -1,0 +1,212 @@
+{
+  "VNO_TRN": {
+    "lastChecked": "2026-11-02T09:51:41Z",
+    "fare": {
+      "price": 125.99,
+      "currency": "EUR",
+      "flightNumber": "FR8365",
+      "departure": "2026-12-26T06:55:00",
+      "arrival": "2026-12-26T08:35:00"
+    },
+    "lowest": 125.99,
+    "highest": 125.99,
+    "label": "Vilnius → Turinas",
+    "date": "2026-12-26",
+    "signature": "VNO-TRN-2026-12-26-None-None"
+  },
+  "TRN_BRI": {
+    "lastChecked": "2026-11-02T09:51:41Z",
+    "fare": {
+      "price": 94.0,
+      "currency": "EUR",
+      "flightNumber": "FR6180",
+      "departure": "2026-12-26T10:20:00",
+      "arrival": "2026-12-26T12:00:00"
+    },
+    "lowest": 94.0,
+    "highest": 94.0,
+    "label": "Turinas → Baris (rytas)",
+    "date": "2026-12-26",
+    "signature": "TRN-BRI-2026-12-26-10:00-13:00"
+  },
+  "TRN_BRI_EVE": {
+    "lastChecked": "2026-11-02T09:51:41Z",
+    "fare": {
+      "price": 81.99,
+      "currency": "EUR",
+      "flightNumber": "FR264",
+      "departure": "2026-12-26T21:40:00",
+      "arrival": "2026-12-26T23:20:00"
+    },
+    "lowest": 81.99,
+    "highest": 81.99,
+    "label": "Turinas → Baris (vakaras)",
+    "date": "2026-12-26",
+    "signature": "TRN-BRI-2026-12-26-17:00-None"
+  },
+  "BRI_VIE": {
+    "lastChecked": "2026-11-02T09:51:41Z",
+    "fare": {
+      "price": 88.99,
+      "currency": "EUR",
+      "flightNumber": "FR9067",
+      "departure": "2027-01-03T09:30:00",
+      "arrival": "2027-01-03T11:05:00"
+    },
+    "lowest": 88.99,
+    "highest": 88.99,
+    "label": "Baris → Viena (rytas)",
+    "date": "2027-01-03",
+    "signature": "BRI-VIE-2027-01-03-None-10:30"
+  },
+  "VIE_VNO": {
+    "lastChecked": "2026-11-02T09:51:41Z",
+    "fare": {
+      "price": 100.99,
+      "currency": "EUR",
+      "flightNumber": "FR198",
+      "departure": "2027-01-03T12:25:00",
+      "arrival": "2027-01-03T15:15:00"
+    },
+    "lowest": 100.99,
+    "highest": 100.99,
+    "label": "Viena → Vilnius",
+    "date": "2027-01-03",
+    "signature": "VIE-VNO-2027-01-03-11:30-None"
+  },
+  "BRI_BGY": {
+    "lastChecked": "2026-11-02T09:51:41Z",
+    "fare": {
+      "price": 83.86,
+      "currency": "EUR",
+      "flightNumber": "FR4659",
+      "departure": "2027-01-02T23:25:00",
+      "arrival": "2027-01-03T00:55:00"
+    },
+    "lowest": 83.86,
+    "highest": 83.86,
+    "label": "Baris → Bergamas",
+    "date": "2027-01-02",
+    "signature": "BRI-BGY-2027-01-02-17:00-None"
+  },
+  "BGY_VNO": {
+    "lastChecked": "2026-11-02T09:51:41Z",
+    "fare": {
+      "price": 153.99,
+      "currency": "EUR",
+      "flightNumber": "FR2872",
+      "departure": "2027-01-03T06:10:00",
+      "arrival": "2027-01-03T09:40:00"
+    },
+    "lowest": 153.99,
+    "highest": 153.99,
+    "label": "Bergamas → Vilnius",
+    "date": "2027-01-03",
+    "signature": "BGY-VNO-2027-01-03-None-09:00"
+  },
+  "BRI_VIE_SAT": {
+    "lastChecked": "2026-11-02T09:51:41Z",
+    "fare": {
+      "price": 137.99,
+      "currency": "EUR",
+      "flightNumber": "FR9005",
+      "departure": "2027-01-02T16:20:00",
+      "arrival": "2027-01-02T17:55:00"
+    },
+    "lowest": 137.99,
+    "highest": 137.99,
+    "label": "Baris → Viena (šeštadienio vakaras)",
+    "date": "2027-01-02",
+    "signature": "BRI-VIE-2027-01-02-14:00-None"
+  },
+  "VIE_VNO_OS": {
+    "lastChecked": "2026-11-02T09:51:41Z",
+    "fare": {
+      "price": 103.0,
+      "currency": "EUR",
+      "flightNumber": "OS917",
+      "departure": "2027-01-03T10:00",
+      "arrival": "2027-01-03T12:45"
+    },
+    "lowest": 103.0,
+    "highest": 103.0,
+    "label": "Viena → Vilnius (Austrian)",
+    "date": "2027-01-03",
+    "signature": "VIE-VNO-2027-01-03-None-None"
+  },
+  "VNO_WAW_LO": {
+    "lastChecked": "2026-11-02T09:51:41Z",
+    "fare": {
+      "price": 117.0,
+      "currency": "EUR",
+      "flightNumber": "LO772",
+      "departure": "2026-12-26T14:40",
+      "arrival": "2026-12-26T14:45"
+    },
+    "lowest": 117.0,
+    "highest": 117.0,
+    "label": "Vilnius → Varšuva (LOT)",
+    "date": "2026-12-26",
+    "signature": "VNO-WAW-2026-12-26-None-None"
+  },
+  "WAW_BRI_W6": {
+    "lastChecked": "2026-11-02T09:51:41Z",
+    "fare": {
+      "price": 132.0,
+      "currency": "EUR",
+      "flightNumber": "W61339",
+      "departure": "2026-12-26T18:10",
+      "arrival": "2026-12-26T20:20"
+    },
+    "lowest": 132.0,
+    "highest": 132.0,
+    "label": "Varšuva → Baris (Wizz Air)",
+    "date": "2026-12-26",
+    "signature": "WAW-BRI-2026-12-26-None-None"
+  },
+  "BRI_ROM_TRAIN": {
+    "lastChecked": "2026-11-02T09:51:41Z",
+    "fare": {
+      "price": 45.0,
+      "currency": "EUR",
+      "flightNumber": "Frecciarossa",
+      "departure": "2027-01-03T06:50",
+      "arrival": "2027-01-03T11:30"
+    },
+    "lowest": 45.0,
+    "highest": 45.0,
+    "label": "Traukinys Baris → Roma",
+    "date": "2027-01-03",
+    "signature": "BRI-ROM-2027-01-03-None-None"
+  },
+  "CIA_VNO": {
+    "lastChecked": "2026-11-02T09:51:41Z",
+    "fare": {
+      "price": 224.39,
+      "currency": "EUR",
+      "flightNumber": "FR1308",
+      "departure": "2027-01-03T16:00:00",
+      "arrival": "2027-01-03T19:45:00"
+    },
+    "lowest": 224.39,
+    "highest": 224.39,
+    "label": "Roma (Čiampinas) → Vilnius",
+    "date": "2027-01-03",
+    "signature": "CIA-VNO-2027-01-03-13:00-None"
+  },
+  "VNO_BRI_LH": {
+    "lastChecked": "2026-11-02T09:51:41Z",
+    "fare": {
+      "price": 449.0,
+      "currency": "EUR",
+      "flightNumber": "per FRA ir FCO",
+      "departure": "2026-12-26T16:00",
+      "arrival": "2026-12-26T23:00"
+    },
+    "lowest": 449.0,
+    "highest": 449.0,
+    "label": "Vilnius ⇄ Baris (Lufthansa + ITA, vienas bilietas)",
+    "date": "2026-12-26",
+    "signature": "VNO-BRI-2026-12-26-None-None"
+  }
+}

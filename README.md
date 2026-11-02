@@ -69,7 +69,11 @@ Kainų šaltinių patikrą galima paleisti ir kompiuteryje: `cd android && ./gra
 GitHub Actions ją paleidžia po kiekvieno pakeitimo ([Price sources](.github/workflows/sources.yml)) –
 taip iškart matyti, jei kuri nors svetainė pasikeitė.
 
-## 🔐 Programėlės pasirašymas (nebūtina)
+## 🔐 Programėlės pasirašymas
 
-APK pasirašomas GitHub runner'io *debug* raktu, kuris saugomas Actions cache. Norint pastovaus rakto, pridėkite slaptus
-kintamuosius `BARI_KEYSTORE_BASE64` (`base64 -w0 bari.jks`), `BARI_KEYSTORE_PASSWORD`, `BARI_KEY_ALIAS` ir `BARI_KEY_PASSWORD`.
+Android leidžia atnaujinti programėlę tik tada, kai nauja versija pasirašyta **tuo pačiu raktu**.
+Pirmą kartą GitHub Actions pats sukuria raktą (atsitiktinis slaptažodis, saugoma tik Actions cache) ir naudoja jį visoms
+vėlesnėms versijoms; [keep-signing-key.yml](.github/workflows/keep-signing-key.yml) kas 3 dienas jį „pajudina“, kad GitHub neištrintų.
+
+Patikimiausia – savo raktas saugyklos paslaptyse: `BARI_KEYSTORE_BASE64` (`base64 -w0 bari.jks`), `BARI_KEYSTORE_PASSWORD`,
+`BARI_KEY_ALIAS`, `BARI_KEY_PASSWORD`. Pakeitus raktą, programėlę reikės vieną kartą išdiegti ir įdiegti iš naujo.

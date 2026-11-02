@@ -39,31 +39,59 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      # Without a release key the APK is signed with the runner's debug key.
-      # Caching it keeps the signature stable, so new builds install over old ones.
-      - name: Restore debug signing key
-        if: env.HAS_KEYSTORE != 'true'
-        uses: actions/cache@v4
-        with:
-          path: ~/.android/debug.keystore
-          key: bari-debug-keystore-v1
-
-      - name: Decode release signing key
+      # Every APK must be signed with the same key, otherwise Android refuses to update the installed app.
+      # Option 1: your own key in repository secrets (BARI_KEYSTORE_BASE64, BARI_KEYSTORE_PASSWORD, BARI_KEY_ALIAS, BARI_KEY_PASSWORD).
+      - name: Use signing key from secrets
         if: env.HAS_KEYSTORE == 'true'
         env:
           KEYSTORE_B64: ${{ secrets.BARI_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.BARI_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.BARI_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.BARI_KEY_PASSWORD }}
         run: |
           echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/bari-release.jks"
-          echo "BARI_KEYSTORE_FILE=$RUNNER_TEMP/bari-release.jks" >> "$GITHUB_ENV"
+          {
+            echo "BARI_KEYSTORE_FILE=$RUNNER_TEMP/bari-release.jks"
+            echo "BARI_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
+            echo "BARI_KEY_ALIAS=$KEY_ALIAS"
+            echo "BARI_KEY_PASSWORD=${KEY_PASSWORD:-$KEYSTORE_PASSWORD}"
+          } >> "$GITHUB_ENV"
+
+      # Option 2 (default): a key generated once by CI and kept in the Actions cache
+      # (kept alive by keep-signing-key.yml). Its password is random and never leaves the cache.
+      - name: Restore CI signing key
+        if: env.HAS_KEYSTORE != 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.bari-signing
+          key: bari-signing-key-v1
+
+      - name: Prepare CI signing key
+        if: env.HAS_KEYSTORE != 'true'
+        run: |
+          DIR="$HOME/.bari-signing"
+          if [ ! -f "$DIR/bari.jks" ]; then
+            echo "No cached signing key – creating one (first build only)."
+            mkdir -p "$DIR"
+            openssl rand -hex 24 > "$DIR/pass"
+            keytool -genkeypair -noprompt -keystore "$DIR/bari.jks" -alias bari -keyalg RSA -keysize 2048 \
+              -validity 10000 -storepass "$(cat "$DIR/pass")" -keypass "$(cat "$DIR/pass")" -dname "CN=Bari, O=sparnai, C=LT"
+          fi
+          PASS="$(cat "$DIR/pass")"
+          echo "::add-mask::$PASS"
+          {
+            echo "BARI_KEYSTORE_FILE=$DIR/bari.jks"
+            echo "BARI_KEYSTORE_PASSWORD=$PASS"
+            echo "BARI_KEY_ALIAS=bari"
+            echo "BARI_KEY_PASSWORD=$PASS"
+          } >> "$GITHUB_ENV"
+          echo "Signing certificate:"
+          keytool -list -v -keystore "$DIR/bari.jks" -storepass "$PASS" | grep -E "SHA256:" | head -1
 
       - name: Unit tests
         run: ./gradlew --no-daemon --stacktrace :core:test
 
       - name: Build release APK
-        env:
-          BARI_KEYSTORE_PASSWORD: ${{ secrets.BARI_KEYSTORE_PASSWORD }}
-          BARI_KEY_ALIAS: ${{ secrets.BARI_KEY_ALIAS }}
-          BARI_KEY_PASSWORD: ${{ secrets.BARI_KEY_PASSWORD }}
         run: ./gradlew --no-daemon --stacktrace assembleRelease
 
       - name: Collect APK

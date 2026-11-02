@@ -42,6 +42,8 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -55,6 +57,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -64,6 +67,7 @@ import com.sparnai.bari.core.Direction
 import com.sparnai.bari.core.Format
 import com.sparnai.bari.core.Leg
 import com.sparnai.bari.core.RouteMath
+import com.sparnai.bari.core.PriceScope
 import com.sparnai.bari.core.RouteOption
 import com.sparnai.bari.core.RouteSummary
 import com.sparnai.bari.ui.components.LayoverPill
@@ -76,11 +80,13 @@ fun TripScreen(
     state: AppState,
     onOpenSegment: (String) -> Unit,
     onPassengers: (Int) -> Unit,
+    onPriceScope: (PriceScope) -> Unit,
     onEditRoute: (RouteOption?) -> Unit,
     onDeleteRoute: (String) -> Unit,
     onShare: (RouteSummary) -> Unit,
 ) {
-    val plan = remember(state.trip, state.records) { RouteMath.plan(state.trip, state.records) }
+    val scope = state.settings.priceScope
+    val plan = remember(state.trip, state.records, scope) { RouteMath.plan(state.trip, state.records, scope) }
     var collapsed by rememberSaveable { mutableStateOf(setOf<String>()) }
     fun LazyListScope.section(key: String, title: String, subtitle: String?, list: List<RouteSummary>) {
         if (list.isEmpty()) return
@@ -112,6 +118,7 @@ fun TripScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item(key = "hero") { TripHero(state, plan, onPassengers) }
+        item(key = "scope") { ScopeToggle(scope, onPriceScope) }
         if (state.trip.routes.isEmpty()) {
             item {
                 Text(
@@ -180,8 +187,9 @@ private fun TripHero(state: AppState, plan: TripPlan, onPassengers: (Int) -> Uni
                 Text(Format.countdown(start), style = MaterialTheme.typography.labelLarge, color = onHero)
             }
             Spacer(Modifier.height(6.dp))
+            val what = if (state.settings.priceScope == PriceScope.FLIGHTS) "tik skrydžiai" else "pilna kaina"
             Text(
-                "Visa kelionė (nuvykimas + grįžimas), ${Format.passengers(pax)}",
+                "Visa kelionė (nuvykimas + grįžimas), ${Format.passengers(pax)} · $what",
                 style = MaterialTheme.typography.labelMedium,
                 color = onHero.copy(alpha = 0.85f),
             )
@@ -220,6 +228,36 @@ private fun TripHero(state: AppState, plan: TripPlan, onPassengers: (Int) -> Uni
                 ) { Icon(Icons.Filled.Add, contentDescription = "Daugiau keleivių", modifier = Modifier.size(18.dp)) }
             }
         }
+    }
+}
+
+/** Switch between the full journey price and plane tickets only. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ScopeToggle(scope: PriceScope, onChange: (PriceScope) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("Skaičiuoti:", style = MaterialTheme.typography.labelLarge)
+            FilterChip(
+                selected = scope == PriceScope.FULL,
+                onClick = { onChange(PriceScope.FULL) },
+                label = { Text("Pilna kaina") },
+            )
+            FilterChip(
+                selected = scope == PriceScope.FLIGHTS,
+                onClick = { onChange(PriceScope.FLIGHTS) },
+                label = { Text("Tik skrydžiai") },
+            )
+        }
+        Text(
+            if (scope == PriceScope.FULL) {
+                "Skrydžiai, traukiniai, autobusai ir persėdimai tarp stočių ir oro uostų. Nakvynė ir bagažas neįskaičiuoti."
+            } else {
+                "Tik lėktuvų bilietai. Autobusai, traukiniai ir persėdimai rodomi pilkai ir į sumą neįeina."
+            },
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -292,8 +330,10 @@ private fun RouteCard(
                 }
             }
             if (summary.route.extraCostLabel != null) {
-                val text = if (summary.route.extraCost > 0) {
+                val text = if (summary.route.extraCost > 0 && summary.scope == PriceScope.FULL) {
                     "Įskaičiuota ${Format.total(summary.route.extraCost, passengers)}: ${summary.route.extraCostLabel}"
+                } else if (summary.route.extraCost > 0) {
+                    "Neįskaičiuota ${Format.total(summary.route.extraCost, passengers)}: ${summary.route.extraCostLabel}"
                 } else {
                     "Neįskaičiuota: ${summary.route.extraCostLabel}"
                 }
@@ -329,10 +369,10 @@ private fun RouteCard(
 fun LegRow(leg: Leg, passengers: Int, onClick: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
     val seg = leg.segment
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .alpha(if (leg.included) 1f else 0.5f)
             .clickable(onClick = onClick)
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -372,7 +412,11 @@ fun LegRow(leg: Leg, passengers: Int, onClick: () -> Unit) {
         }
         Column(horizontalAlignment = Alignment.End) {
             Text(Format.total(leg.price, passengers), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-            TrendPill(Format.times(leg.price, passengers), Format.times(leg.previousPrice, passengers))
+            if (leg.included) {
+                TrendPill(Format.times(leg.price, passengers), Format.times(leg.previousPrice, passengers))
+            } else {
+                Text("neįskaičiuota", style = MaterialTheme.typography.labelSmall, color = scheme.onSurfaceVariant)
+            }
         }
     }
 }

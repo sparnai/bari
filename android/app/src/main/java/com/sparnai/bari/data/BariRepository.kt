@@ -16,6 +16,7 @@ import com.sparnai.bari.core.TripMerge
 import com.sparnai.bari.core.withError
 import com.sparnai.bari.core.withFare
 import com.sparnai.bari.core.FareSource
+import com.sparnai.bari.core.PriceScope
 import com.sparnai.bari.core.TransportMode
 import com.sparnai.bari.core.sources.ApiException
 import com.sparnai.bari.core.sources.PriceFetcher
@@ -114,7 +115,7 @@ class BariRepository(private val context: Context, private val fetcher: PriceFet
             var ok = 0
             var failed = 0
             update { st ->
-                val bestBefore = RouteMath.plan(st.trip, st.records).bestTotal
+                val bestBefore = RouteMath.plan(st.trip, st.records, st.settings.priceScope).bestTotal
                 val records = st.records.toMutableMap()
                 for ((segment, result) in results) {
                     // The segment may have been edited or removed while we were waiting for the network.
@@ -139,11 +140,12 @@ class BariRepository(private val context: Context, private val fetcher: PriceFet
                         }
                     }
                 }
-                val bestAfter = RouteMath.plan(st.trip, records).bestTotal
+                val bestAfter = RouteMath.plan(st.trip, records, st.settings.priceScope).bestTotal
                 if (alerts.isNotEmpty() && bestAfter != null) {
                     val suffix = if (bestBefore != null && bestAfter < bestBefore) " (${Format.delta(bestAfter - bestBefore)})" else ""
                     val who = if (st.trip.passengers > 1) " (${Format.passengers(st.trip.passengers)})" else ""
-                    alerts += "💶 Pigiausia kelionė į abi puses: ${Format.euro(bestAfter)}$who$suffix"
+                    val scope = if (st.settings.priceScope == PriceScope.FLIGHTS) " (tik skrydžiai)" else ""
+                    alerts += "💶 Pigiausia kelionė į abi puses$scope: ${Format.euro(bestAfter)}$who$suffix"
                 }
                 st.copy(records = records, lastRefresh = now)
             }

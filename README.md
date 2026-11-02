@@ -51,6 +51,12 @@ Variantus galima keisti programėlėje (skiltys „Transportas“ ir „Kelionė
 `routes` – jų deriniai (`direction`: `out` arba `back`). Atnaujinus programėlę, nepakeisti variantai atsinaujina automatiškai,
 o jūsų redaguoti ar pridėti – išlieka.
 
+## Pilna kaina arba tik skrydžiai
+
+Kelionės ekrane galima perjungti, ką skaičiuoti: **Pilna kaina** – skrydžiai, traukiniai, autobusai ir persėdimai tarp stočių
+ir oro uostų; **Tik skrydžiai** – tik lėktuvų bilietai (kitos atkarpos rodomos pilkai). Pagal pasirinkimą perskaičiuojamas ir
+variantų reitingas. Nakvynė ir bagažas neįskaičiuojami nė viename režime.
+
 ## Pranešimai
 
 Programėlė fone tikrina kainas (kas 3/6/12/24 val., nustatymuose) ir telefone parodo pranešimą, kai:

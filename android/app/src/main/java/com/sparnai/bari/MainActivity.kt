@@ -228,6 +228,7 @@ private fun BariRoot(vm: MainViewModel) {
                     state = state,
                     onOpenSegment = { detailId = it },
                     onPassengers = vm::setPassengers,
+                    onPriceScope = vm::setPriceScope,
                     onEditRoute = { editor = EditorRequest.EditRoute(it) },
                     onDeleteRoute = vm::deleteRoute,
                     onShare = { summary ->

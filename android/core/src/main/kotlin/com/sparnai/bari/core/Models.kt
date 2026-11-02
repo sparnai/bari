@@ -168,6 +168,18 @@ data class SegmentRecord(
     val lastError: String? = null,
 )
 
+/** What the journey totals include. */
+@Serializable
+enum class PriceScope {
+    /** Flights, trains, buses and transfers between stations and airports. */
+    @SerialName("full")
+    FULL,
+
+    /** Only plane tickets. */
+    @SerialName("flights")
+    FLIGHTS,
+}
+
 @Serializable
 data class AppSettings(
     /** 0 = background checks off. */
@@ -175,6 +187,7 @@ data class AppSettings(
     val notifyOnDrop: Boolean = true,
     val minDropEuro: Double = 1.0,
     val notifyOnTarget: Boolean = true,
+    val priceScope: PriceScope = PriceScope.FULL,
 )
 
 @Serializable

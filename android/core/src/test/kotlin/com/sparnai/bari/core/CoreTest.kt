@@ -319,6 +319,36 @@ class CoreTest {
     }
 
     @Test
+    fun flightsOnlyScope() {
+        val bus = Segment("BUS", "Autobusas", "Vilnius", "Warsaw", "2026-12-26", source = FareSource.FLIXBUS)
+        val fly = seg("F", "WAW", "BRI")
+        val trip = TripConfig(
+            passengers = 2,
+            segments = listOf(bus, fly, seg("T", "VNO", "TRN")),
+            routes = listOf(
+                RouteOption("bus", "Autobusu + skrydis", listOf("BUS", "F"), direction = Direction.OUT, extraCost = 5.0),
+                RouteOption("fly", "Tik skrydis", listOf("T"), direction = Direction.OUT),
+            ),
+        )
+        val records = mapOf(
+            "BUS" to SegmentRecord(fare = Fare(30.0)),
+            "F" to SegmentRecord(fare = Fare(131.0)),
+            "T" to SegmentRecord(fare = Fare(150.0)),
+        )
+        val full = RouteMath.plan(trip, records, PriceScope.FULL)
+        assertEquals((30 + 131 + 5) * 2.0, full.outbound.first { it.route.id == "bus" }.total!!, 0.001)
+        val flights = RouteMath.plan(trip, records, PriceScope.FLIGHTS)
+        val busRoute = flights.outbound.first { it.route.id == "bus" }
+        assertEquals(131 * 2.0, busRoute.total!!, 0.001) // bus and transfer left out
+        assertFalse(busRoute.legs.first().included)
+        assertTrue(busRoute.legs.last().included)
+        // A missing bus price does not block the flights-only total.
+        val noBus = RouteMath.plan(trip, records - "BUS", PriceScope.FLIGHTS)
+        assertEquals(262.0, noBus.outbound.first { it.route.id == "bus" }.total!!, 0.001)
+        assertNull(RouteMath.plan(trip, records - "BUS", PriceScope.FULL).outbound.first { it.route.id == "bus" }.total)
+    }
+
+    @Test
     fun stateRoundTrip() {
         val state = AppState(
             trip = TripConfig(segments = listOf(seg("A", "VNO", "TRN"))),

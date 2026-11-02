@@ -31,6 +31,8 @@ data class Leg(
     val previousPrice: Double?,
     val departure: LocalDateTime?,
     val arrival: LocalDateTime?,
+    /** False when the price scope leaves this leg out of the total (e.g. a bus in "flights only"). */
+    val included: Boolean = true,
 ) {
     val price: Double? get() = fare?.price
 }
@@ -44,6 +46,7 @@ data class RouteSummary(
     val total: Double?,
     val previousTotal: Double?,
     val missing: List<String>,
+    val scope: PriceScope = PriceScope.FULL,
 ) {
     val worstLayover: LayoverLevel?
         get() = layovers.filterNotNull().map { it.level }.maxByOrNull { severity(it) }
@@ -140,7 +143,12 @@ object RouteMath {
         return Layover(minutes, level, !sameAirport, next.segment.origin, transfer)
     }
 
-    fun summarize(route: RouteOption, trip: TripConfig, records: Map<String, SegmentRecord>): RouteSummary {
+    fun summarize(
+        route: RouteOption,
+        trip: TripConfig,
+        records: Map<String, SegmentRecord>,
+        scope: PriceScope = PriceScope.FULL,
+    ): RouteSummary {
         val byId = trip.segments.associateBy { it.id }
         val legs = mutableListOf<Leg>()
         val missing = mutableListOf<String>()
@@ -150,14 +158,17 @@ object RouteMath {
                 missing += id
                 continue
             }
-            val leg = leg(segment, records[id])
-            if (leg.fare == null) missing += segment.label
+            val included = scope == PriceScope.FULL || segment.mode == TransportMode.FLIGHT
+            val leg = leg(segment, records[id]).copy(included = included)
+            if (included && leg.fare == null) missing += segment.label
             legs += leg
         }
+        val counted = legs.filter { it.included }
+        val extra = if (scope == PriceScope.FULL) route.extraCost else 0.0
         val pax = trip.passengers.coerceAtLeast(1)
-        val complete = missing.isEmpty() && legs.isNotEmpty()
-        val perPerson = if (complete) round2(legs.sumOf { it.price ?: 0.0 } + route.extraCost) else null
-        val previous = if (complete) round2(legs.sumOf { it.previousPrice ?: it.price ?: 0.0 } + route.extraCost) else null
+        val complete = missing.isEmpty() && counted.isNotEmpty()
+        val perPerson = if (complete) round2(counted.sumOf { it.price ?: 0.0 } + extra) else null
+        val previous = if (complete) round2(counted.sumOf { it.previousPrice ?: it.price ?: 0.0 } + extra) else null
         return RouteSummary(
             route = route,
             legs = legs,
@@ -166,17 +177,26 @@ object RouteMath {
             total = perPerson?.let { round2(it * pax) },
             previousTotal = previous?.let { round2(it * pax) },
             missing = missing,
+            scope = scope,
         )
     }
 
     /** All routes, cheapest first; incomplete routes last. */
-    fun summarizeAll(trip: TripConfig, records: Map<String, SegmentRecord>): List<RouteSummary> =
-        trip.routes.map { summarize(it, trip, records) }
+    fun summarizeAll(
+        trip: TripConfig,
+        records: Map<String, SegmentRecord>,
+        scope: PriceScope = PriceScope.FULL,
+    ): List<RouteSummary> =
+        trip.routes.map { summarize(it, trip, records, scope) }
             .sortedWith(compareBy<RouteSummary> { it.total == null }.thenBy { it.total ?: 0.0 })
 
     /** Ranks outbound, return and round-trip journeys and finds the cheapest whole trip. */
-    fun plan(trip: TripConfig, records: Map<String, SegmentRecord>): TripPlan {
-        val all = summarizeAll(trip, records)
+    fun plan(
+        trip: TripConfig,
+        records: Map<String, SegmentRecord>,
+        scope: PriceScope = PriceScope.FULL,
+    ): TripPlan {
+        val all = summarizeAll(trip, records, scope)
         val out = all.filter { it.route.direction == Direction.OUT }
         val back = all.filter { it.route.direction == Direction.BACK }
         val round = all.filter { it.route.direction == Direction.ROUND }
